@@ -1,16 +1,23 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const http = require("http");
-const socketIO = require("socket.io");
+import dotenv from "dotenv";
+import express from "express";
+import cors from "cors";
+import http from "http";
+import { Server as SocketIO } from "socket.io";
 
-const connectDB = require("./config/database");
-const errorHandler = require("./middleware/errorHandler");
+import connectDB from "./config/database.js";
+import errorHandler from "./middleware/errorHandler.js";
+import authRoutes from "./routes/authRoutes.js";
+import userRoutes from "./routes/userRoutes.js";
+import conversationRoutes from "./routes/conversationRoutes.js";
+import messageRoutes from "./routes/messageRoutes.js";
+import initializeSocket from "./sockets/chatSocket.js";
+
+dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 
-const io = socketIO(server, {
+const io = new SocketIO(server, {
   cors: {
     origin: process.env.CLIENT_URL || "http://localhost:3000",
     methods: ["GET", "POST"],
@@ -28,10 +35,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use("/api/auth", require("./routes/authRoutes"));
-app.use("/api/users", require("./routes/userRoutes"));
-app.use("/api/conversations", require("./routes/conversationRoutes"));
-app.use("/api/messages", require("./routes/messageRoutes"));
+app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/conversations", conversationRoutes);
+app.use("/api/messages", messageRoutes);
 
 // Health check
 app.get("/health", (req, res) => {
@@ -47,7 +54,7 @@ app.use((req, res) => {
 app.use(errorHandler);
 
 // Socket.IO
-require("./sockets/chatSocket")(io);
+initializeSocket(io);
 
 // 🚀 START SERVER ONLY AFTER DB CONNECTS
 const PORT = process.env.PORT || 5000;

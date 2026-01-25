@@ -1,7 +1,7 @@
-const Message = require("../models/Message");
-const Conversation = require("../models/Conversation");
-const User = require("../models/User");
-const { verifyToken } = require("../config/jwt");
+import Message from "../models/Message.js";
+import Conversation from "../models/Conversation.js";
+import User from "../models/User.js";
+import { verifyToken } from "../config/jwt.js";
 
 const activeUsers = new Map(); // Map of userId -> socketId
 
@@ -45,13 +45,13 @@ const chatSocket = (io) => {
 
         // Save message to database
         const message = new Message({
-          conversation: conversationId,
-          sender: userId,
+          conversationId,
+          senderId: userId,
           content,
         });
 
         await message.save();
-        await message.populate("sender", "-password");
+        await message.populate("senderId", "-passwordHash");
 
         // Update conversation's last message
         await Conversation.findByIdAndUpdate(conversationId, {
@@ -92,4 +92,4 @@ const chatSocket = (io) => {
   });
 };
 
-module.exports = chatSocket;
+export default chatSocket;

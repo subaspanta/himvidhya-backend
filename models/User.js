@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 const userSchema = new mongoose.Schema(
   {
@@ -23,6 +23,11 @@ const userSchema = new mongoose.Schema(
     avatar: {
       type: String,
       default: null,
+    },
+    username: {
+      type: String,
+      unique: true,
+      sparse: true,
     },
   },
   { timestamps: true },
@@ -53,4 +58,4 @@ userSchema.methods.toJSON = function () {
   return obj;
 };
 
-module.exports = mongoose.model("User", userSchema);
+export default mongoose.model("User", userSchema);

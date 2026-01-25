@@ -4,7 +4,7 @@ Welcome to your clean chat backend! Here's where to find everything:
 
 ## 🚀 Start Here
 
-1. **[GETTING_STARTED.md](GETTING_STARTED.md)** - Read this first! 
+1. **[GETTING_STARTED.md](GETTING_STARTED.md)** - Read this first!
    - What you have
    - How to run it
    - Quick start guide
@@ -58,13 +58,14 @@ middleware/
 models/
 ├── User.js         → User schema
 ├── Conversation.js → Conversation schema
+├── conversationParticipant.js → Participant role/index
 └── Message.js      → Message schema
 
 routes/
 ├── authRoutes.js           → Register/Login
-├── userRoutes.js           → User profile
-├── conversationRoutes.js   → Conversations
-└── messageRoutes.js        → Messages
+├── userRoutes.js           → Users (list/profile/update/search)
+├── conversationRoutes.js   → Conversations + messages listing
+└── messageRoutes.js        → Send message
 
 sockets/
 └── chatSocket.js   → Real-time events
@@ -79,12 +80,14 @@ server.js          → Entry point
 ## 🎯 Quick Reference
 
 ### Start Development
+
 ```bash
 npm run dev        # Auto-reload
 npm start          # Production
 ```
 
 ### Test the API
+
 ```bash
 # Health check
 curl http://localhost:5000/health
@@ -100,12 +103,14 @@ See [API_TESTING.md](API_TESTING.md) for complete examples.
 ## 🔑 Key Concepts
 
 ### Authentication
+
 - User registers → Password hashed → JWT generated
 - Token sent to client → Stored in browser
 - Token included in every protected request
 - Middleware verifies token before allowing access
 
 ### Real-time Messaging
+
 - Client connects with JWT token
 - Socket.IO authenticates connection
 - Client joins conversation room
@@ -113,6 +118,7 @@ See [API_TESTING.md](API_TESTING.md) for complete examples.
 - Instant updates without page reload
 
 ### Error Handling
+
 - All routes wrapped in try-catch
 - Errors passed to error middleware
 - Consistent JSON error responses
@@ -121,32 +127,38 @@ See [API_TESTING.md](API_TESTING.md) for complete examples.
 ## 📊 API Endpoints
 
 ### Authentication
+
 - `POST /api/auth/register` - Create account
 - `POST /api/auth/login` - Login
 
-### Users
+### Users (auth required)
+
+- `GET /api/users` - List users
 - `GET /api/users/:id` - Get profile
-- `PUT /api/users/:id` - Update profile
+- `PUT /api/users/:id` - Update own profile
 - `GET /api/users/search?q=...` - Search users
 
-### Conversations
-- `GET /api/conversations` - List conversations
-- `POST /api/conversations` - Create conversation
-- `GET /api/conversations/:id/messages` - Get messages
+### Conversations (auth required)
 
-### Messages
-- `POST /api/messages` - Send message
-- `PUT /api/messages/:id/read` - Mark as read
+- `GET /api/conversations` - List conversations
+- `POST /api/conversations` - Create conversation (body: participantId)
+- `GET /api/conversations/:conversationId/messages` - Get messages (query: limit, skip)
+
+### Messages (auth required)
+
+- `POST /api/messages/send` - Send message
 
 ## 🔌 Socket.IO Events
 
 **Client → Server:**
+
 - `join-room` - Join conversation
 - `send-message` - Send message
 - `typing` - User typing
 - `stop-typing` - Stopped typing
 
 **Server → Client:**
+
 - `receive-message` - New message
 - `user-typing` - User typing
 - `user-stopped-typing` - User stopped
@@ -171,7 +183,7 @@ See [API_TESTING.md](API_TESTING.md) for complete examples.
 
 ## 🎉 You're Ready!
 
-This is a solid, clean foundation for a chat application backend. Start learning, experimenting, and building! 
+This is a solid, clean foundation for a chat application backend. Start learning, experimenting, and building!
 
 **Happy coding! 🚀**
 

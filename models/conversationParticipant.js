@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const conversationParticipantSchema = new mongoose.Schema(
   {
@@ -32,7 +32,7 @@ conversationParticipantSchema.index(
   { unique: true },
 );
 
-module.exports = mongoose.model(
+export default mongoose.model(
   "ConversationParticipant",
   conversationParticipantSchema,
 );
