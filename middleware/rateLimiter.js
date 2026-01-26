@@ -2,7 +2,7 @@ import rateLimit from "express-rate-limit";
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 requests per windowMs
+  max: 50, // 50 requests per windowMs (more reasonable for development)
   message: "Too many authentication attempts, please try again later",
   standardHeaders: true,
   legacyHeaders: false,
