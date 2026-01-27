@@ -21,4 +21,9 @@ router.get("/:id", protect, getUser);
 // Update user profile
 router.put("/:id", protect, updateUser);
 
+router.get("/profile", protect, async (req, res) => {
+  const user = await User.findById(req.userId).select("-password");
+  res.json(user);
+});
+
 export default router;

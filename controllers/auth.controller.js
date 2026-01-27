@@ -1,10 +1,10 @@
+import { generateToken } from "../config/jwt.js";
 import { registerUser, loginUser } from "../services/auth.service.js";
 
 export const register = async (req, res, next) => {
   try {
     const { name, email, username, password } = req.body;
 
-    // Validation
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -12,16 +12,23 @@ export const register = async (req, res, next) => {
       });
     }
 
-    const { user, token } = await registerUser({
+    const { user } = await registerUser({
       name,
       email,
       username,
       password,
     });
 
+    const token = generateToken(user._id);
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
     res.status(201).json({
       success: true,
-      token,
       user: user.toJSON(),
     });
   } catch (error) {
@@ -46,12 +53,18 @@ export const login = async (req, res, next) => {
         error: "Please provide email and password",
       });
     }
+    const { user } = await loginUser({ email, password });
 
-    const { user, token } = await loginUser({ email, password });
+    const token = generateToken(user._id);
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
     res.json({
       success: true,
-      token,
       user: user.toJSON(),
     });
   } catch (error) {
@@ -63,4 +76,12 @@ export const login = async (req, res, next) => {
     }
     next(error);
   }
+};
+export const logout = (req, res) => {
+  res.cookie("token", "", {
+    httpOnly: true,
+    expires: new Date(0),
+  });
+
+  res.json({ success: true, message: "Logged out successfully" });
 };

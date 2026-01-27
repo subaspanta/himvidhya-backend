@@ -6,11 +6,10 @@ import { Server as SocketIO } from "socket.io";
 
 import connectDB from "./config/database.js";
 import errorHandler from "./middleware/errorHandler.js";
-import authRoutes from "./routes/authRoutes.js";
-import userRoutes from "./routes/userRoutes.js";
-import conversationRoutes from "./routes/conversationRoutes.js";
-import messageRoutes from "./routes/messageRoutes.js";
+import publicRoutes from "./routes/publicRoutes.js";
+import protectedRoutes from "./routes/protectedRoutes.js";
 import initializeSocket from "./sockets/chatSocket.js";
+import cookieParser from "cookie-parser";
 
 dotenv.config();
 
@@ -34,11 +33,11 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/conversations", conversationRoutes);
-app.use("/api/messages", messageRoutes);
+// Public (unauthenticated) routes
+app.use("/api/public", publicRoutes);
+
+// Protected (authenticated) chat routes
+app.use("/api", protectedRoutes);
 
 // Health check
 app.get("/health", (req, res) => {
@@ -55,7 +54,7 @@ app.use(errorHandler);
 
 // Socket.IO
 initializeSocket(io);
-
+app.use(cookieParser());
 // 🚀 START SERVER ONLY AFTER DB CONNECTS
 const PORT = process.env.PORT || 5000;
 
