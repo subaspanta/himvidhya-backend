@@ -1,11 +1,11 @@
-import User from "../models/User.js";
+const User = require("../models/User.js");
 
-export const getAllUsers = async () => {
+const getAllUsers = async () => {
   const users = await User.find().select("-passwordHash");
   return users;
 };
 
-export const getUserById = async (userId) => {
+const getUserById = async (userId) => {
   const user = await User.findById(userId).select("-passwordHash");
 
   if (!user) {
@@ -15,7 +15,7 @@ export const getUserById = async (userId) => {
   return user;
 };
 
-export const updateUserProfile = async (
+const updateUserProfile = async (
   userId,
   requestingUserId,
   { name, avatar },
@@ -38,7 +38,7 @@ export const updateUserProfile = async (
   return user;
 };
 
-export const searchUsers = async (query) => {
+const searchUsers = async (query) => {
   if (!query) {
     throw new Error("Please provide search query");
   }
@@ -53,4 +53,11 @@ export const searchUsers = async (query) => {
     .limit(10);
 
   return users;
+};
+
+module.exports = {
+  getAllUsers,
+  getUserById,
+  updateUserProfile,
+  searchUsers,
 };

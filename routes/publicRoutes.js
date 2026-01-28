@@ -1,11 +1,15 @@
-import express from "express";
-import { register, login } from "../controllers/auth.controller.js";
-import { authLimiter } from "../middleware/rateLimiter.js";
+const express = require("express");
+const {
+  register,
+  login,
+  forgetPassword,
+} = require("../controllers/auth.controller.js");
 
 const router = express.Router();
 
-// Public routes
 router.post("/register", register);
 router.post("/login", login);
+router.post("/forget-password", forgetPassword);
+router.post("/reset-password/:token", forgetPassword);
 
-export default router;
+module.exports = router;

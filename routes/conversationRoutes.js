@@ -1,10 +1,10 @@
-import express from "express";
-import {
+const express = require("express");
+const {
   getConversations,
   createNewConversation,
   getMessages,
-} from "../controllers/conversation.controller.js";
-import { protect } from "../middleware/authMiddleware.js";
+} = require("../controllers/conversation.controller.js");
+const protect = require("../middleware/authMiddleware.js");
 
 const router = express.Router();
 
@@ -17,4 +17,4 @@ router.post("/", protect, createNewConversation);
 // Get messages in conversation
 router.get("/:conversationId/messages", protect, getMessages);
 
-export default router;
+module.exports = router;

@@ -1,12 +1,8 @@
-import mongoose from "mongoose";
-import Conversation from "../models/Conversation.js";
-import Message from "../models/Message.js";
+const mongoose = require("mongoose");
+const Conversation = require("../models/Conversation.js");
+const Message = require("../models/Message.js");
 
-export const sendMessageService = async ({
-  conversationId,
-  senderId,
-  content,
-}) => {
+const sendMessageService = async ({ conversationId, senderId, content }) => {
   const session = await mongoose.startSession();
 
   try {
@@ -58,4 +54,8 @@ export const sendMessageService = async ({
     session.endSession();
     throw error;
   }
+};
+
+module.exports = {
+  sendMessageService,
 };

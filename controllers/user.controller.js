@@ -1,14 +1,13 @@
-import {
+const {
   getAllUsers,
   getUserById,
   updateUserProfile,
   searchUsers,
-} from "../services/user.service.js";
+} = require("../services/user.service.js");
 
-export const getUsers = async (req, res, next) => {
+const getUsers = async (req, res, next) => {
   try {
     const users = await getAllUsers();
-
     res.json({
       success: true,
       users,
@@ -18,10 +17,9 @@ export const getUsers = async (req, res, next) => {
   }
 };
 
-export const getUser = async (req, res, next) => {
+const getUser = async (req, res, next) => {
   try {
     const user = await getUserById(req.params.id);
-
     res.json({
       success: true,
       user,
@@ -37,15 +35,13 @@ export const getUser = async (req, res, next) => {
   }
 };
 
-export const updateUser = async (req, res, next) => {
+const updateUser = async (req, res, next) => {
   try {
     const { name, avatar } = req.body;
-
     const user = await updateUserProfile(req.params.id, req.userId, {
       name,
       avatar,
     });
-
     res.json({
       success: true,
       user,
@@ -67,12 +63,10 @@ export const updateUser = async (req, res, next) => {
   }
 };
 
-export const searchUser = async (req, res, next) => {
+const searchUser = async (req, res, next) => {
   try {
     const { q } = req.query;
-
     const users = await searchUsers(q);
-
     res.json({
       success: true,
       users,
@@ -86,4 +80,11 @@ export const searchUser = async (req, res, next) => {
     }
     next(error);
   }
+};
+
+module.exports = {
+  getUsers,
+  getUser,
+  updateUser,
+  searchUser,
 };

@@ -1,18 +1,15 @@
-import { sendMessageService } from "../services/message.service.js";
+const { sendMessageService } = require("../services/message.service.js");
 
-export const sendMessage = async (req, res) => {
+const sendMessage = async (req, res) => {
   try {
     const { conversationId, content } = req.body;
-
     // populated by auth middleware
     const senderId = req.userId;
-
     const message = await sendMessageService({
       conversationId,
       senderId,
       content,
     });
-
     res.status(201).json({
       success: true,
       message,
@@ -23,4 +20,8 @@ export const sendMessage = async (req, res) => {
       error: error.message,
     });
   }
+};
+
+module.exports = {
+  sendMessage,
 };

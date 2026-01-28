@@ -1,11 +1,12 @@
-import express from "express";
-import {
+const express = require("express");
+const {
   getUsers,
   getUser,
   updateUser,
   searchUser,
-} from "../controllers/user.controller.js";
-import { protect } from "../middleware/authMiddleware.js";
+} = require("../controllers/user.controller.js");
+const protect = require("../middleware/authMiddleware.js");
+const User = require("../models/User.js");
 
 const router = express.Router();
 
@@ -22,8 +23,8 @@ router.get("/:id", protect, getUser);
 router.put("/:id", protect, updateUser);
 
 router.get("/profile", protect, async (req, res) => {
-  const user = await User.findById(req.userId).select("-password");
+  const user = await User.findById(req.userId).select("-passwordHash");
   res.json(user);
 });
 
-export default router;
+module.exports = router;

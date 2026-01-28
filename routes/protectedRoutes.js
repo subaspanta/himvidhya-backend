@@ -1,8 +1,8 @@
-import express from "express";
-import { protect } from "../middleware/authMiddleware.js";
-import userRoutes from "./userRoutes.js";
-import conversationRoutes from "./conversationRoutes.js";
-import messageRoutes from "./messageRoutes.js";
+const express = require("express");
+const protect = require("../middleware/authMiddleware.js");
+const userRoutes = require("./userRoutes.js");
+const conversationRoutes = require("./conversationRoutes.js");
+const messageRoutes = require("./messageRoutes.js");
 
 const router = express.Router();
 
@@ -11,4 +11,4 @@ router.use("/users", protect, userRoutes);
 router.use("/conversations", protect, conversationRoutes);
 router.use("/messages", protect, messageRoutes);
 
-export default router;
+module.exports = router;

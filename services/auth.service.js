@@ -1,7 +1,8 @@
-import User from "../models/User.js";
-import { generateToken } from "../config/jwt.js";
+const User = require("../models/User.js");
+const { generateToken } = require("../config/jwt.js");
+const crypto = require("crypto");
 
-export const registerUser = async ({ name, email, username, password }) => {
+const registerUserService = async ({ name, email, username, password }) => {
   // Check if user exists
   const existingUser = await User.findOne({
     $or: [{ email }, ...(username ? [{ username }] : [])],
@@ -24,9 +25,7 @@ export const registerUser = async ({ name, email, username, password }) => {
 
   return { user, token };
 };
-
-export const loginUser = async ({ email, password }) => {
-  // Find user by email
+const loginUserService = async ({ email, password }) => {
   const user = await User.findOne({ email });
 
   if (!user) {
@@ -44,4 +43,46 @@ export const loginUser = async ({ email, password }) => {
   const token = generateToken(user._id);
 
   return { user, token };
+};
+
+const forgetPasswordService = async (email) => {
+  const user = await User.findOne({ email });
+  console.log({ user });
+  if (!user) return;
+
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  console.log({ resetToken });
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+  user.resetPasswordToken = hashedToken;
+  user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
+
+  await user.save();
+  return resetToken;
+};
+
+const resetPasswordService = async (token, newPassword) => {
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+  const user = await User.findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpires: { $gt: Date.now() },
+  });
+
+  if (!user) throw new Error("Token invalid or expired");
+  user.passwordHash = newPassword; // pre-save hook hashes
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+
+  await user.save();
+
+  return true;
+};
+
+module.exports = {
+  registerUserService,
+  loginUserService,
+  forgetPasswordService,
+  resetPasswordService,
 };

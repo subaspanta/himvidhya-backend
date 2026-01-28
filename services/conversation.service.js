@@ -1,7 +1,7 @@
-import Conversation from "../models/Conversation.js";
-import Message from "../models/Message.js";
+const Conversation = require("../models/Conversation.js");
+const Message = require("../models/Message.js");
 
-export const getUserConversations = async (userId) => {
+const getUserConversations = async (userId) => {
   const conversations = await Conversation.find({
     participants: userId,
   })
@@ -12,7 +12,7 @@ export const getUserConversations = async (userId) => {
   return conversations;
 };
 
-export const createConversation = async (userId, participantId) => {
+const createConversation = async (userId, participantId) => {
   if (!participantId) {
     throw new Error("Please provide participant ID");
   }
@@ -36,7 +36,7 @@ export const createConversation = async (userId, participantId) => {
   return conversation;
 };
 
-export const getConversationMessages = async (
+const getConversationMessages = async (
   conversationId,
   { limit = 50, skip = 0 },
 ) => {
@@ -47,4 +47,10 @@ export const getConversationMessages = async (
     .skip(parseInt(skip));
 
   return messages.reverse();
+};
+
+module.exports = {
+  getUserConversations,
+  createConversation,
+  getConversationMessages,
 };

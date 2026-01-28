@@ -1,7 +1,7 @@
-import Message from "../models/Message.js";
-import Conversation from "../models/Conversation.js";
-import User from "../models/User.js";
-import { verifyToken } from "../config/jwt.js";
+const Message = require("../models/Message.js");
+const Conversation = require("../models/Conversation.js");
+const User = require("../models/User.js");
+const { verifyToken } = require("../config/jwt.js");
 
 const activeUsers = new Map(); // Map of userId -> socketId
 
@@ -92,4 +92,4 @@ const chatSocket = (io) => {
   });
 };
 
-export default chatSocket;
+module.exports = chatSocket;
