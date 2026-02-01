@@ -4,6 +4,7 @@ const {
   forgetPasswordService,
   loginUserService,
   registerUserService,
+  resetPasswordService,
 } = require("../services/auth.service.js");
 const { sendResetEmail } = require("../utils/email.js");
 
@@ -25,7 +26,7 @@ const register = async (req, res, next) => {
       password,
     });
 
-    const token = generateToken(user._id);
+    const token = generateToken(user);
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -61,7 +62,7 @@ const login = async (req, res, next) => {
     }
     const { user } = await loginUserService({ email, password });
 
-    const token = generateToken(user._id);
+    const token = generateToken(user);
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
@@ -105,13 +106,10 @@ const forgetPassword = async (req, res, next) => {
       message: "If email exists, reset link sent",
     });
   } catch (error) {
-    // Log the error and send a structured error response
     res.status(500).json({
       success: false,
       message: error.message || "Internal server error",
     });
-    // Optionally, call next(error) to let error middleware handle it
-    // next(error);
   }
 };
 
@@ -120,11 +118,39 @@ const resetPassword = async (req, res, next) => {
     const { token } = req.params;
     const { password } = req.body;
 
-    await resetPassword(token, password);
+    const minLength = 8;
+    const hasUppercase = /[A-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    const hasSymbol = /[^A-Za-z0-9]/.test(password);
+
+    if (
+      !password ||
+      password.length < minLength ||
+      !hasUppercase ||
+      !hasNumber ||
+      !hasSymbol
+    ) {
+      return res.status(400).json({
+        success: false,
+        error: `Password must be at least ${minLength} characters and include an uppercase letter, a number, and a symbol.`,
+      });
+    }
+
+    const user = await resetPasswordService(token, password);
+
+    // Auto-login: generate token and set cookie
+    const tokenValue = generateToken(user);
+    res.cookie("token", tokenValue, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
 
     res.json({
       success: true,
       message: "Password updated successfully",
+      user: user.toJSON(),
     });
   } catch (error) {
     next(error);

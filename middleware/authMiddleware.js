@@ -8,8 +8,39 @@ const protect = (req, res, next) => {
     }
     try {
       const decoded = verifyToken(token);
-      req.userId = decoded.userId;
-      next();
+      if (!decoded) {
+        return res.status(401).json({ success: false, error: "Invalid token" });
+      }
+      // Fetch user and check passwordChangedAt
+      const User = require("../models/User.js");
+      User.findById(decoded.userId)
+        .then((user) => {
+          if (!user) {
+            return res
+              .status(401)
+              .json({ success: false, error: "User not found" });
+          }
+          if (user.passwordChangedAt && decoded.passwordChangedAt) {
+            if (
+              user.passwordChangedAt.getTime() >
+              new Date(decoded.passwordChangedAt).getTime()
+            ) {
+              return res
+                .status(401)
+                .json({
+                  success: false,
+                  error: "Password changed, please login again",
+                });
+            }
+          }
+          req.userId = decoded.userId;
+          next();
+        })
+        .catch(() => {
+          return res
+            .status(401)
+            .json({ success: false, error: "User lookup failed" });
+        });
     } catch (error) {
       return res.status(401).json({ success: false, error: "Invalid token" });
     }

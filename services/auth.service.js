@@ -21,7 +21,7 @@ const registerUserService = async ({ name, email, username, password }) => {
   });
 
   // Generate JWT token
-  const token = generateToken(user._id);
+  const token = generateToken(user);
 
   return { user, token };
 };
@@ -40,7 +40,7 @@ const loginUserService = async ({ email, password }) => {
   }
 
   // Generate JWT token
-  const token = generateToken(user._id);
+  const token = generateToken(user);
 
   return { user, token };
 };
@@ -72,10 +72,11 @@ const resetPasswordService = async (token, newPassword) => {
   user.passwordHash = newPassword; // pre-save hook hashes
   user.resetPasswordToken = undefined;
   user.resetPasswordExpires = undefined;
+  user.passwordChangedAt = new Date();
 
   await user.save();
 
-  return true;
+  return user;
 };
 
 module.exports = {
