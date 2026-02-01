@@ -47,11 +47,9 @@ const loginUserService = async ({ email, password }) => {
 
 const forgetPasswordService = async (email) => {
   const user = await User.findOne({ email });
-  console.log({ user });
   if (!user) return;
 
   const resetToken = crypto.randomBytes(32).toString("hex");
-  console.log({ resetToken });
   const hashedToken = crypto
     .createHash("sha256")
     .update(resetToken)

@@ -95,9 +95,7 @@ const logout = (req, res) => {
 const forgetPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
-    console.log({ email });
     const resetToken = await forgetPasswordService(email);
-    console.log({ resetToken });
     if (resetToken) {
       const resetURL = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
       await sendResetEmail(email, resetURL);
