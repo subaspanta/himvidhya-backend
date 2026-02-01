@@ -55,7 +55,6 @@ process.on("uncaughtException", function (err) {
   console.error("Uncaught Exception:", err);
 });
 
-// Enhanced error handler middleware
 app.use(function (err, req, res, next) {
   // If you have file detachment logic, call it here
   // if (req.uploadedFiles && req.uploadedFiles.length > 0) {
