@@ -6,7 +6,6 @@ const { Server: SocketIO } = require("socket.io");
 const connectDB = require("./config/database.js");
 const errorHandler = require("./middleware/errorHandler.js");
 const fs = require("fs");
-// Optionally import logger and file detachment utilities if available
 // const { logger } = require("./logger");
 // const { handleFileDetachment } = require("./utils/files");
 const publicRoutes = require("./routes/publicRoutes.js");
