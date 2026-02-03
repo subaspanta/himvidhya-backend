@@ -12,10 +12,20 @@ const register = async (req, res, next) => {
   try {
     const { name, email, username, password } = req.body;
 
+    // Validation
     if (!name || !email || !password) {
       return res.status(400).json({
         success: false,
         error: "Please provide all required fields",
+      });
+    }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid email format",
       });
     }
 
@@ -60,6 +70,16 @@ const login = async (req, res, next) => {
         error: "Please provide email and password",
       });
     }
+
+    // Email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        error: "Invalid email format",
+      });
+    }
+
     const { user } = await loginUserService({ email, password });
 
     const token = generateToken(user);

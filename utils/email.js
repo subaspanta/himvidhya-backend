@@ -7,9 +7,6 @@ const sendResetEmail = async (to, resetURL) => {
       user: process.env.EMAIL_SENDER_USER,
       pass: process.env.EMAIL_SENDER_PASSWORD,
     },
-    tls: {
-      rejectUnauthorized: false,
-    },
   });
 
   await transporter.sendMail({
