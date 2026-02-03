@@ -27,6 +27,9 @@ const io = new SocketIO(server, {
 });
 
 // Middleware
+const helmet = require("helmet");
+
+app.use(helmet());
 app.use(
   cors({
     origin: process.env.CLIENT_URL || "http://localhost:3000",
@@ -34,11 +37,12 @@ app.use(
   }),
 );
 app.use(cookieParser());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 app.use("/api/public", publicRoutes);
 app.use("/api", protectedRoutes);
+
 app.get("/health", (req, res) => {
   res.json({ status: "Server is running" });
 });
@@ -69,12 +73,40 @@ app.use(function (err, req, res, next) {
 
 // Socket.IO
 initializeSocket(io);
-app.use(cookieParser());
 // 🚀 START SERVER ONLY AFTER DB CONNECTS
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
   try {
+    // Validate critical environment variables
+    const requiredEnvVars = ["MONGODB_URI", "JWT_SECRET", "CLIENT_URL"];
+    const missingEnvVars = requiredEnvVars.filter(
+      (envVar) => !process.env[envVar],
+    );
+
+    if (missingEnvVars.length > 0) {
+      throw new Error(
+        `Missing required environment variables: ${missingEnvVars.join(", ")}`,
+      );
+    }
+
+    // Validate email credentials if NODE_ENV is production
+    if (process.env.NODE_ENV === "production") {
+      const emailEnvVars = [
+        "EMAIL_SENDER_USER",
+        "EMAIL_SENDER_PASSWORD",
+        "FRONTEND_URL",
+      ];
+      const missingEmailVars = emailEnvVars.filter(
+        (envVar) => !process.env[envVar],
+      );
+      if (missingEmailVars.length > 0) {
+        throw new Error(
+          `Missing email configuration variables: ${missingEmailVars.join(", ")}`,
+        );
+      }
+    }
+
     await connectDB();
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);

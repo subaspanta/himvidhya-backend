@@ -55,7 +55,7 @@ const forgetPasswordService = async (email) => {
     .update(resetToken)
     .digest("hex");
   user.resetPasswordToken = hashedToken;
-  user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
+  user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
 
   await user.save();
   return resetToken;

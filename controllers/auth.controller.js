@@ -12,23 +12,7 @@ const register = async (req, res, next) => {
   try {
     const { name, email, username, password } = req.body;
 
-    // Validation
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        success: false,
-        error: "Please provide all required fields",
-      });
-    }
-
-    // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid email format",
-      });
-    }
-
+    // Data is already validated by Zod middleware
     const { user } = await registerUserService({
       name,
       email,
@@ -63,23 +47,7 @@ const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    // Validation
-    if (!email || !password) {
-      return res.status(400).json({
-        success: false,
-        error: "Please provide email and password",
-      });
-    }
-
-    // Email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid email format",
-      });
-    }
-
+    // Data is already validated by Zod middleware
     const { user } = await loginUserService({ email, password });
 
     const token = generateToken(user);
@@ -138,24 +106,7 @@ const resetPassword = async (req, res, next) => {
     const { token } = req.params;
     const { password } = req.body;
 
-    const minLength = 8;
-    const hasUppercase = /[A-Z]/.test(password);
-    const hasNumber = /[0-9]/.test(password);
-    const hasSymbol = /[^A-Za-z0-9]/.test(password);
-
-    if (
-      !password ||
-      password.length < minLength ||
-      !hasUppercase ||
-      !hasNumber ||
-      !hasSymbol
-    ) {
-      return res.status(400).json({
-        success: false,
-        error: `Password must be at least ${minLength} characters and include an uppercase letter, a number, and a symbol.`,
-      });
-    }
-
+    // Data is already validated by Zod middleware
     const user = await resetPasswordService(token, password);
 
     // Auto-login: generate token and set cookie
@@ -173,6 +124,12 @@ const resetPassword = async (req, res, next) => {
       user: user.toJSON(),
     });
   } catch (error) {
+    if (error.message === "Token invalid or expired") {
+      return res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+    }
     next(error);
   }
 };

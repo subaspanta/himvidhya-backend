@@ -39,10 +39,13 @@ const protect = async (req, res, next) => {
     next();
   } catch (error) {
     console.error("Auth middleware error:", error);
+    const genericError =
+      process.env.NODE_ENV === "production"
+        ? "Authentication failed"
+        : error.message;
     return res.status(401).json({
       success: false,
-      error: "Authentication failed",
-      details: error.message,
+      error: genericError,
     });
   }
 };
