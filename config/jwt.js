@@ -1,16 +1,13 @@
 const jwt = require("jsonwebtoken");
 
-const generateToken = (userId) => {
-  // Accept user object for passwordChangedAt
-  return (user) => {
-    return jwt.sign(
-      { userId: user._id, passwordChangedAt: user.passwordChangedAt },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: process.env.JWT_EXPIRY || "7d",
-      },
-    );
-  };
+const generateToken = (user) => {
+  return jwt.sign(
+    { userId: user._id, passwordChangedAt: user.passwordChangedAt },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: process.env.JWT_EXPIRY || "7d",
+    },
+  );
 };
 
 const verifyToken = (token) => {
