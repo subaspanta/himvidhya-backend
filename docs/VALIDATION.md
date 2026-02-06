@@ -1,4 +1,4 @@
-# Validation in ChatApp Server
+# Validation in olo Server
 
 ## Overview
 

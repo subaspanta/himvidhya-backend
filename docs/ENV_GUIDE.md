@@ -1,6 +1,6 @@
 # Environment Variables Guide
 
-Complete reference for all environment variables required by ChatApp Server.
+Complete reference for all environment variables required by olo Server.
 
 ## Overview
 

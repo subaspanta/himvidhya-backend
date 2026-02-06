@@ -1,4 +1,4 @@
-# CSRF Protection in ChatApp Server
+# CSRF Protection in olo Server
 
 ## Current Approach (Recommended for 2026)
 

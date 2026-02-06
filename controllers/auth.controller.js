@@ -6,8 +6,10 @@ const {
   loginUserService,
   registerUserService,
   resetPasswordService,
+  verifyOTPService,
 } = require("../services/auth.service.js");
-const { sendResetEmail } = require("../utils/email.js");
+const { sendOTPEmail } = require("../utils/email.js");
+const User = require("../models/User.js");
 
 const register = async (req, res, next) => {
   try {
@@ -25,7 +27,8 @@ const register = async (req, res, next) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -62,7 +65,8 @@ const login = async (req, res, next) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -87,17 +91,11 @@ const login = async (req, res, next) => {
 };
 const logout = (req, res, next) => {
   try {
-    // Verify user is authenticated
-    if (!req.cookies.token) {
-      return res.status(401).json({
-        success: false,
-        error: "Not authenticated",
-      });
-    }
-
-    res.cookie("token", "", {
+    res.clearCookie("token", {
       httpOnly: true,
-      expires: new Date(0),
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      path: "/",
     });
 
     // Log logout event
@@ -112,17 +110,16 @@ const logout = (req, res, next) => {
 const forgetPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
-    const resetToken = await forgetPasswordService(email);
-    if (resetToken) {
-      const resetURL = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
-      await sendResetEmail(email, resetURL);
-      logger.info(`Password reset email sent to: ${email}`);
+    const otp = await forgetPasswordService(email);
+    if (otp) {
+      await sendOTPEmail(email, otp);
+      logger.info(`Password reset OTP sent to: ${email}`);
     } else {
       logger.warn(`Password reset requested for non-existent email: ${email}`);
     }
     res.json({
       success: true,
-      message: "If email exists, reset link sent",
+      message: "If email exists, OTP has been sent",
     });
   } catch (error) {
     logger.error(
@@ -135,20 +132,46 @@ const forgetPassword = async (req, res, next) => {
   }
 };
 
+const verifyOTP = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+
+    const result = await verifyOTPService(email, otp);
+
+    logger.info(`OTP verified successfully for: ${email}`);
+
+    res.json({
+      success: true,
+      message: "OTP verified successfully",
+      valid: result.valid,
+    });
+  } catch (error) {
+    if (error.message === "Invalid or expired OTP") {
+      logger.warn(`OTP verification failed for ${req.body.email}`);
+      return res.status(400).json({
+        success: false,
+        error: error.message,
+      });
+    }
+    logger.error(`OTP verification error: ${error.message}`);
+    next(error);
+  }
+};
+
 const resetPassword = async (req, res, next) => {
   try {
-    const { token } = req.params;
-    const { password } = req.body;
+    const { email, otp, password } = req.body;
 
     // Data is already validated by Zod middleware
-    const user = await resetPasswordService(token, password);
+    const user = await resetPasswordService(email, otp, password);
 
     // Auto-login: generate token and set cookie
     const tokenValue = generateToken(user);
     res.cookie("token", tokenValue, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      path: "/",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -163,8 +186,8 @@ const resetPassword = async (req, res, next) => {
       user: user.toJSON(),
     });
   } catch (error) {
-    if (error.message === "Token invalid or expired") {
-      logger.warn(`Password reset failed: Invalid or expired token`);
+    if (error.message === "Invalid or expired OTP") {
+      logger.warn(`Password reset failed: Invalid or expired OTP`);
       return res.status(400).json({
         success: false,
         error: error.message,
@@ -175,10 +198,35 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+const getCurrentUser = async (req, res) => {
+  try {
+    // req.user already populated by protect middleware
+    const user = await User.findById(req.userId);
+
+    if (!user) {
+      return res.status(401).json({ message: "User not found" });
+    }
+
+    logger.info(`[AUTH] getCurrentUser - userId: ${req.userId}`);
+
+    res.status(200).json({
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      avatar: user.avatar,
+    });
+  } catch (error) {
+    logger.error(`[AUTH] getCurrentUser error: ${error.message}`);
+    res.status(500).json({ message: "Failed to fetch user" });
+  }
+};
+
 module.exports = {
   register,
   login,
   logout,
   forgetPassword,
+  verifyOTP,
   resetPassword,
+  getCurrentUser,
 };

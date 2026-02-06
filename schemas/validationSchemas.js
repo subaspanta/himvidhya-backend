@@ -46,8 +46,22 @@ const forgetPasswordSchema = z.object({
   email: emailSchema,
 });
 
+// Verify OTP schema
+const verifyOTPSchema = z.object({
+  email: emailSchema,
+  otp: z
+    .string()
+    .length(6, "OTP must be 6 digits")
+    .regex(/^\d{6}$/, "OTP must contain only numbers"),
+});
+
 // Reset password schema
 const resetPasswordSchema = z.object({
+  email: emailSchema,
+  otp: z
+    .string()
+    .length(6, "OTP must be 6 digits")
+    .regex(/^\d{6}$/, "OTP must contain only numbers"),
   password: passwordSchema,
 });
 
@@ -55,6 +69,7 @@ module.exports = {
   registerSchema,
   loginSchema,
   forgetPasswordSchema,
+  verifyOTPSchema,
   resetPasswordSchema,
   emailSchema,
   passwordSchema,

@@ -12,7 +12,7 @@ const protect = async (req, res, next) => {
     const decoded = verifyToken(token);
 
     if (!decoded) {
-      return res.status(401).json({ success: false, error: "Invalid token" });
+      return res.status(401).json({ success: false, error: "Authentication failed: Invalid token" });
     }
 
     const user = await User.findById(decoded.userId);

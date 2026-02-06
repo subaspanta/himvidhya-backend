@@ -2,8 +2,11 @@ const express = require("express");
 const {
   register,
   login,
+  logout,
   forgetPassword,
+  verifyOTP,
   resetPassword,
+  getCurrentUser,
 } = require("../controllers/auth.controller.js");
 const protect = require("../middleware/authMiddleware.js");
 const { authLimiter } = require("../middleware/rateLimiter.js");
@@ -12,6 +15,7 @@ const {
   registerSchema,
   loginSchema,
   forgetPasswordSchema,
+  verifyOTPSchema,
   resetPasswordSchema,
 } = require("../schemas/validationSchemas.js");
 
@@ -19,14 +23,16 @@ const router = express.Router();
 
 router.post("/register", authLimiter, validate(registerSchema), register);
 router.post("/login", authLimiter, validate(loginSchema), login);
+router.post("/logout", logout);
 router.post(
   "/forget-password",
   authLimiter,
   validate(forgetPasswordSchema),
   forgetPassword,
 );
+router.post("/verify-otp", authLimiter, validate(verifyOTPSchema), verifyOTP);
 router.post(
-  "/reset-password/:token",
+  "/reset-password",
   authLimiter,
   validate(resetPasswordSchema),
   resetPassword,
@@ -48,11 +54,7 @@ router.get("/password-requirements", (req, res) => {
   });
 });
 
-router.get("/me", protect, (req, res) => {
-  res.json({
-    success: true,
-    user: req.user,
-  });
-});
+// Add to authRouter
+router.get("/me", protect, getCurrentUser);
 
 module.exports = router;

@@ -4,15 +4,15 @@ const cors = require("cors");
 const http = require("http");
 const { Server: SocketIO } = require("socket.io");
 const connectDB = require("./config/database.js");
-const errorHandler = require("./middleware/errorHandler.js");
-const fs = require("fs");
-// const { logger } = require("./logger");
-// const { handleFileDetachment } = require("./utils/files");
-const publicRoutes = require("./routes/publicRoutes.js");
+const {
+  HandleErrorWithLogger,
+  HandleUnCaughtException,
+  HandleUnhandledRejection,
+} = require("./utils/error");
+const authRoutes = require("./routes/authRoutes.js");
 const protectedRoutes = require("./routes/protectedRoutes.js");
 const initializeSocket = require("./sockets/chatSocket.js");
 const cookieParser = require("cookie-parser");
-const { logger } = require("./logger.js");
 
 dotenv.config();
 
@@ -40,36 +40,29 @@ app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
-app.use("/api/public", publicRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api", protectedRoutes);
 
 app.get("/health", (req, res) => {
   res.json({ status: "Server is running" });
 });
-// 404 handler with JSON response
+
+// 404 handler - must be before error handler
 app.use((req, res) => {
   res.status(404).json({
     status: 404,
     message: "Route not found",
   });
 });
-// Uncaught exception handler
-process.on("uncaughtException", function (err) {
-  logger.error("Uncaught Exception", err);
-  console.error("Uncaught Exception:", err);
-});
 
-app.use(function (err, req, res, next) {
-  // If you have file detachment logic, call it here
-  // if (req.uploadedFiles && req.uploadedFiles.length > 0) {
-  //   handleFileDetachment(req.uploadedFiles);
-  // }
-  res.status(err.status || 500);
-  res.json({
-    status: err.status || 500,
-    message: err.message || err,
-  });
-});
+// Global error handler middleware - must be last
+app.use(HandleErrorWithLogger);
+
+// Uncaught exception handler
+process.on("uncaughtException", HandleUnCaughtException);
+
+// Unhandled promise rejection handler
+process.on("unhandledRejection", HandleUnhandledRejection);
 
 // Socket.IO
 initializeSocket(io);

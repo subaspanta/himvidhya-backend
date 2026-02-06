@@ -20,7 +20,6 @@ const registerUserService = async ({ name, email, username, password }) => {
     passwordHash: password,
   });
 
-  // Generate JWT token
   const token = generateToken(user);
 
   return { user, token };
@@ -32,7 +31,6 @@ const loginUserService = async ({ email, password }) => {
     throw new Error("Invalid credentials");
   }
 
-  // Check password
   const isMatch = await user.comparePassword(password);
 
   if (!isMatch) {
@@ -47,31 +45,41 @@ const loginUserService = async ({ email, password }) => {
 
 const forgetPasswordService = async (email) => {
   const user = await User.findOne({ email });
-  if (!user) return;
+  if (!user) return null;
 
-  const resetToken = crypto.randomBytes(32).toString("hex");
-  const hashedToken = crypto
-    .createHash("sha256")
-    .update(resetToken)
-    .digest("hex");
-  user.resetPasswordToken = hashedToken;
-  user.resetPasswordExpires = Date.now() + 60 * 60 * 1000; // 1 hour
+  // Generate 6-digit OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  user.resetPasswordOTP = otp;
+  user.resetPasswordOTPExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
 
   await user.save();
-  return resetToken;
+  return otp;
 };
 
-const resetPasswordService = async (token, newPassword) => {
-  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+const verifyOTPService = async (email, otp) => {
   const user = await User.findOne({
-    resetPasswordToken: hashedToken,
-    resetPasswordExpires: { $gt: Date.now() },
+    email,
+    resetPasswordOTP: otp,
+    resetPasswordOTPExpires: { $gt: Date.now() },
   });
 
-  if (!user) throw new Error("Token invalid or expired");
+  if (!user) throw new Error("Invalid or expired OTP");
+  return { valid: true, userId: user._id };
+};
+
+const resetPasswordService = async (email, otp, newPassword) => {
+  const user = await User.findOne({
+    email,
+    resetPasswordOTP: otp,
+    resetPasswordOTPExpires: { $gt: Date.now() },
+  });
+
+  if (!user) throw new Error("Invalid or expired OTP");
+
   user.passwordHash = newPassword; // pre-save hook hashes
-  user.resetPasswordToken = undefined;
-  user.resetPasswordExpires = undefined;
+  user.resetPasswordOTP = undefined;
+  user.resetPasswordOTPExpires = undefined;
   user.passwordChangedAt = new Date();
 
   await user.save();
@@ -83,5 +91,6 @@ module.exports = {
   registerUserService,
   loginUserService,
   forgetPasswordService,
+  verifyOTPService,
   resetPasswordService,
 };
