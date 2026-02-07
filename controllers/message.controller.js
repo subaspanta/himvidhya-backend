@@ -1,4 +1,8 @@
 const { sendMessageService } = require("../services/message.service.js");
+const {
+  createdResponse,
+  errorResponse,
+} = require("../utils/responseParser.js");
 
 const sendMessage = async (req, res) => {
   try {
@@ -10,15 +14,9 @@ const sendMessage = async (req, res) => {
       senderId,
       content,
     });
-    res.status(201).json({
-      success: true,
-      message,
-    });
+    return createdResponse(res, { message }, "Message sent successfully");
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message,
-    });
+    return errorResponse(res, error.message, 400);
   }
 };
 

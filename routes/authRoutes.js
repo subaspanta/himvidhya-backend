@@ -18,6 +18,7 @@ const {
   verifyOTPSchema,
   resetPasswordSchema,
 } = require("../schemas/validationSchemas.js");
+const { successResponse } = require("../utils/responseParser.js");
 
 const router = express.Router();
 
@@ -40,21 +41,24 @@ router.post(
 
 // Password requirements endpoint
 router.get("/password-requirements", (req, res) => {
-  res.json({
-    success: true,
-    requirements: {
-      minLength: 8,
-      mustInclude: {
-        uppercase: "At least one uppercase letter (A-Z)",
-        number: "At least one number (0-9)",
-        symbol: "At least one special character (!@#$%^&*)",
+  successResponse(
+    res,
+    {
+      requirements: {
+        minLength: 8,
+        mustInclude: {
+          uppercase: "At least one uppercase letter (A-Z)",
+          number: "At least one number (0-9)",
+          symbol: "At least one special character (!@#$%^&*)",
+        },
+        description: "Password must meet all requirements above",
       },
-      description: "Password must meet all requirements above",
     },
-  });
+    "Password requirements retrieved successfully",
+  );
 });
 
-// Add to authRouter
+// Get current authenticated user
 router.get("/me", protect, getCurrentUser);
 
 module.exports = router;

@@ -3,14 +3,20 @@ const {
   createConversation,
   getConversationMessages,
 } = require("../services/conversation.service.js");
+const {
+  successResponse,
+  createdResponse,
+  errorResponse,
+} = require("../utils/responseParser.js");
 
 const getConversations = async (req, res, next) => {
   try {
     const conversations = await getUserConversations(req.userId);
-    res.json({
-      success: true,
-      conversations,
-    });
+    return successResponse(
+      res,
+      { conversations },
+      "Conversations retrieved successfully",
+    );
   } catch (error) {
     next(error);
   }
@@ -20,16 +26,14 @@ const createNewConversation = async (req, res, next) => {
   try {
     const { participantId } = req.body;
     const conversation = await createConversation(req.userId, participantId);
-    res.status(201).json({
-      success: true,
-      conversation,
-    });
+    return createdResponse(
+      res,
+      { conversation },
+      "Conversation created successfully",
+    );
   } catch (error) {
     if (error.message === "Please provide participant ID") {
-      return res.status(400).json({
-        success: false,
-        error: error.message,
-      });
+      return errorResponse(res, error.message, 400);
     }
     next(error);
   }
@@ -43,10 +47,11 @@ const getMessages = async (req, res, next) => {
       limit,
       skip,
     });
-    res.json({
-      success: true,
-      messages,
-    });
+    return successResponse(
+      res,
+      { messages },
+      "Messages retrieved successfully",
+    );
   } catch (error) {
     next(error);
   }

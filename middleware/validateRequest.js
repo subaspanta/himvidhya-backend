@@ -2,6 +2,8 @@
  * Validation middleware for request body validation using Zod schemas
  * Usage: app.post("/route", validate(schema), handler)
  */
+const { validationErrorResponse } = require("../utils/responseParser.js");
+
 const validate = (schema) => {
   return (req, res, next) => {
     try {
@@ -14,11 +16,7 @@ const validate = (schema) => {
           field: err.path.join("."),
           message: err.message,
         }));
-        return res.status(400).json({
-          success: false,
-          error: "Validation failed",
-          details: formattedErrors,
-        });
+        return validationErrorResponse(res, formattedErrors);
       }
       next(error);
     }

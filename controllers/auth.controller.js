@@ -10,6 +10,13 @@ const {
 } = require("../services/auth.service.js");
 const { sendOTPEmail } = require("../utils/email.js");
 const User = require("../models/User.js");
+const {
+  createdResponse,
+  successResponse,
+  errorResponse,
+  conflictResponse,
+  unauthorizedResponse,
+} = require("../utils/responseParser.js");
 
 const register = async (req, res, next) => {
   try {
@@ -35,19 +42,17 @@ const register = async (req, res, next) => {
     // Log successful registration
     logger.info(`User registered: ${email} (ID: ${user._id})`);
 
-    res.status(201).json({
-      success: true,
-      user: user.toJSON(),
-    });
+    return createdResponse(
+      res,
+      { user: user.toJSON() },
+      "User registered successfully",
+    );
   } catch (error) {
     if (error.message === "Email or username already exists") {
       logger.warn(
         `Registration failed: ${req.body.email} - Email/username already exists`,
       );
-      return res.status(400).json({
-        success: false,
-        error: error.message,
-      });
+      return conflictResponse(res, error.message);
     }
     logger.error(`Registration error for ${req.body.email}: ${error.message}`);
     next(error);
@@ -73,17 +78,11 @@ const login = async (req, res, next) => {
     // Log successful login
     logger.info(`User logged in: ${email} (ID: ${user._id})`);
 
-    res.json({
-      success: true,
-      user: user.toJSON(),
-    });
+    return successResponse(res, { user: user.toJSON() }, "Login successful");
   } catch (error) {
     if (error.message === "Invalid credentials") {
       logger.warn(`Login failed: ${req.body.email} - Invalid credentials`);
-      return res.status(401).json({
-        success: false,
-        error: error.message,
-      });
+      return unauthorizedResponse(res, error.message);
     }
     logger.error(`Login error for ${req.body.email}: ${error.message}`);
     next(error);
@@ -101,7 +100,7 @@ const logout = (req, res, next) => {
     // Log logout event
     logger.info(`User logged out: ${req.user?.email || "Unknown"}`);
 
-    res.json({ success: true, message: "Logged out successfully" });
+    return successResponse(res, null, "Logged out successfully");
   } catch (error) {
     next(error);
   }
@@ -117,18 +116,12 @@ const forgetPassword = async (req, res, next) => {
     } else {
       logger.warn(`Password reset requested for non-existent email: ${email}`);
     }
-    res.json({
-      success: true,
-      message: "If email exists, OTP has been sent",
-    });
+    return successResponse(res, null, "If email exists, OTP has been sent");
   } catch (error) {
     logger.error(
       `Forget password error for ${req.body.email}: ${error.message}`,
     );
-    res.status(500).json({
-      success: false,
-      message: error.message || "Internal server error",
-    });
+    return errorResponse(res, error.message || "Internal server error", 500);
   }
 };
 
@@ -140,18 +133,15 @@ const verifyOTP = async (req, res, next) => {
 
     logger.info(`OTP verified successfully for: ${email}`);
 
-    res.json({
-      success: true,
-      message: "OTP verified successfully",
-      valid: result.valid,
-    });
+    return successResponse(
+      res,
+      { valid: result.valid },
+      "OTP verified successfully",
+    );
   } catch (error) {
     if (error.message === "Invalid or expired OTP") {
       logger.warn(`OTP verification failed for ${req.body.email}`);
-      return res.status(400).json({
-        success: false,
-        error: error.message,
-      });
+      return errorResponse(res, error.message, 400);
     }
     logger.error(`OTP verification error: ${error.message}`);
     next(error);
@@ -180,18 +170,15 @@ const resetPassword = async (req, res, next) => {
       `Password reset successful for user: ${user.email} (ID: ${user._id})`,
     );
 
-    res.json({
-      success: true,
-      message: "Password updated successfully",
-      user: user.toJSON(),
-    });
+    return successResponse(
+      res,
+      { user: user.toJSON() },
+      "Password updated successfully",
+    );
   } catch (error) {
     if (error.message === "Invalid or expired OTP") {
       logger.warn(`Password reset failed: Invalid or expired OTP`);
-      return res.status(400).json({
-        success: false,
-        error: error.message,
-      });
+      return errorResponse(res, error.message, 400);
     }
     logger.error(`Password reset error: ${error.message}`);
     next(error);
@@ -204,20 +191,24 @@ const getCurrentUser = async (req, res) => {
     const user = await User.findById(req.userId);
 
     if (!user) {
-      return res.status(401).json({ message: "User not found" });
+      return unauthorizedResponse(res, "User not found");
     }
 
     logger.info(`[AUTH] getCurrentUser - userId: ${req.userId}`);
 
-    res.status(200).json({
-      id: user._id,
-      username: user.username,
-      email: user.email,
-      avatar: user.avatar,
-    });
+    return successResponse(
+      res,
+      {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        avatar: user.avatar,
+      },
+      "User retrieved successfully",
+    );
   } catch (error) {
     logger.error(`[AUTH] getCurrentUser error: ${error.message}`);
-    res.status(500).json({ message: "Failed to fetch user" });
+    return errorResponse(res, "Failed to fetch user", 500);
   }
 };
 
