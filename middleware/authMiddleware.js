@@ -1,24 +1,25 @@
 const { verifyToken } = require("../config/jwt.js");
 const User = require("../models/User.js");
+const { unauthorizedResponse } = require("../utils/responseParser.js");
 
 const protect = async (req, res, next) => {
   try {
     const token = req.cookies.token;
 
     if (!token) {
-      return res.status(401).json({ error: "Not authorized" });
+      return unauthorizedResponse(res, "Not authorized - No token provided");
     }
 
     const decoded = verifyToken(token);
 
     if (!decoded) {
-      return res.status(401).json({ success: false, error: "Authentication failed: Invalid token" });
+      return unauthorizedResponse(res, "Invalid or expired token");
     }
 
     const user = await User.findById(decoded.userId);
 
     if (!user) {
-      return res.status(401).json({ success: false, error: "User not found" });
+      return unauthorizedResponse(res, "User not found");
     }
 
     // Check if password was changed after token was issued
@@ -27,10 +28,10 @@ const protect = async (req, res, next) => {
         user.passwordChangedAt.getTime() >
         new Date(decoded.passwordChangedAt).getTime()
       ) {
-        return res.status(401).json({
-          success: false,
-          error: "Password changed, please login again",
-        });
+        return unauthorizedResponse(
+          res,
+          "Password changed, please login again",
+        );
       }
     }
 
@@ -43,10 +44,7 @@ const protect = async (req, res, next) => {
       process.env.NODE_ENV === "production"
         ? "Authentication failed"
         : error.message;
-    return res.status(401).json({
-      success: false,
-      error: genericError,
-    });
+    return unauthorizedResponse(res, genericError);
   }
 };
 

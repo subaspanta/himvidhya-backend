@@ -4,14 +4,17 @@ const {
   updateUserProfile,
   searchUsers,
 } = require("../services/user.service.js");
+const {
+  successResponse,
+  notFoundResponse,
+  forbiddenResponse,
+  errorResponse,
+} = require("../utils/responseParser.js");
 
 const getUsers = async (req, res, next) => {
   try {
     const users = await getAllUsers();
-    res.json({
-      success: true,
-      users,
-    });
+    return successResponse(res, { users }, "Users retrieved successfully");
   } catch (error) {
     next(error);
   }
@@ -20,16 +23,10 @@ const getUsers = async (req, res, next) => {
 const getUser = async (req, res, next) => {
   try {
     const user = await getUserById(req.params.id);
-    res.json({
-      success: true,
-      user,
-    });
+    return successResponse(res, { user }, "User retrieved successfully");
   } catch (error) {
     if (error.message === "User not found") {
-      return res.status(404).json({
-        success: false,
-        error: error.message,
-      });
+      return notFoundResponse(res, error.message);
     }
     next(error);
   }
@@ -42,22 +39,13 @@ const updateUser = async (req, res, next) => {
       name,
       avatar,
     });
-    res.json({
-      success: true,
-      user,
-    });
+    return successResponse(res, { user }, "User updated successfully");
   } catch (error) {
     if (error.message === "Unauthorized") {
-      return res.status(403).json({
-        success: false,
-        error: error.message,
-      });
+      return forbiddenResponse(res, error.message);
     }
     if (error.message === "User not found") {
-      return res.status(404).json({
-        success: false,
-        error: error.message,
-      });
+      return notFoundResponse(res, error.message);
     }
     next(error);
   }
@@ -67,16 +55,14 @@ const searchUser = async (req, res, next) => {
   try {
     const { q } = req.query;
     const users = await searchUsers(q);
-    res.json({
-      success: true,
-      users,
-    });
+    return successResponse(
+      res,
+      { users, query: q },
+      "Search completed successfully",
+    );
   } catch (error) {
     if (error.message === "Please provide search query") {
-      return res.status(400).json({
-        success: false,
-        error: error.message,
-      });
+      return errorResponse(res, error.message, 400);
     }
     next(error);
   }

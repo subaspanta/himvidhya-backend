@@ -55,9 +55,9 @@ const HandleErrorWithLogger = (err, req, res, next) => {
   }
 
   return res.status(status).json({
-    status,
-    error: data,
+    success: false,
     message: data,
+    timestamp: new Date().toISOString(),
   });
 };
 

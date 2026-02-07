@@ -13,6 +13,7 @@ const authRoutes = require("./routes/authRoutes.js");
 const protectedRoutes = require("./routes/protectedRoutes.js");
 const initializeSocket = require("./sockets/chatSocket.js");
 const cookieParser = require("cookie-parser");
+const { getVersionedPath, API_VERSION } = require("./config/apiVersion.js");
 
 dotenv.config();
 
@@ -40,18 +41,47 @@ app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
-app.use("/api/auth", authRoutes);
-app.use("/api", protectedRoutes);
+// API Routes with versioning
+const apiV1Path = getVersionedPath("v1");
+app.use(`${apiV1Path}/auth`, authRoutes);
+app.use(apiV1Path, protectedRoutes);
 
+// Health check endpoint (unversioned)
 app.get("/health", (req, res) => {
-  res.json({ status: "Server is running" });
+  res.json({
+    success: true,
+    message: "Server is running",
+    version: API_VERSION.CURRENT,
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// API info endpoint
+app.get("/api", (req, res) => {
+  res.json({
+    success: true,
+    message: "Chat API",
+    currentVersion: API_VERSION.CURRENT,
+    supportedVersions: API_VERSION.SUPPORTED,
+    endpoints: {
+      v1: {
+        base: apiV1Path,
+        auth: `${apiV1Path}/auth`,
+        users: `${apiV1Path}/users`,
+        conversations: `${apiV1Path}/conversations`,
+        messages: `${apiV1Path}/messages`,
+      },
+    },
+  });
 });
 
 // 404 handler - must be before error handler
 app.use((req, res) => {
   res.status(404).json({
-    status: 404,
+    success: false,
     message: "Route not found",
+    path: req.originalUrl,
+    timestamp: new Date().toISOString(),
   });
 });
 
