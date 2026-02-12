@@ -1,9 +1,4 @@
 /**
- * Standard API Response Format
- * Following best practices for consistent API responses
- */
-
-/**
  * Success response with data
  * @param {Object} res - Express response object
  * @param {*} data - Response data

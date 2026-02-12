@@ -1,3 +1,5 @@
+const fs = require("fs");
+const path = require("path");
 const {
   NotFoundError,
   ValidationError,
@@ -6,18 +8,22 @@ const {
 } = require("./errors");
 const { logger } = require("../../logger");
 
-/**
- * Centralized Error Handler with Logger
- * Handles all errors thrown in the application
- * - Logs unexpected errors for monitoring
- * - Returns appropriate status codes and messages
- */
+const fallbackLog = (err) => {
+  try {
+    fs.appendFileSync(
+      path.join(__dirname, "../../logs/fatal.log"),
+      `${new Date().toISOString()} | ${err.message}\n${err.stack}\n\n`,
+    );
+  } catch {}
+};
+
+/* ---------------- EXPRESS ERROR MIDDLEWARE ---------------- */
+
 const HandleErrorWithLogger = (err, req, res, next) => {
   let reportError = true;
   let status = 500;
-  let data = err.message || "Internal server error";
+  let message = err.message || "Internal server error";
 
-  // Check if error is a known/expected error type
   const knownErrors = [
     NotFoundError,
     ValidationError,
@@ -29,71 +35,61 @@ const HandleErrorWithLogger = (err, req, res, next) => {
     if (err instanceof ErrorType) {
       reportError = false;
       status = err.status;
-      data = err.message;
     }
   });
 
   if (reportError) {
-    // Log unexpected errors for monitoring/debugging
-    // Can integrate with error tracking tools like Sentry, CloudWatch, etc.
-    logger.error({
-      message: "Unexpected Error",
+    logger.error("Unexpected API Error", {
       error: err.message,
       stack: err.stack,
-      url: req.originalUrl,
       method: req.method,
+      url: req.originalUrl,
       ip: req.ip,
+      user: req.user?.id || "guest",
+      body: req.body,
+      params: req.params,
+      query: req.query,
     });
   } else {
-    // Log known errors as warnings (user-caused errors)
-    logger.warn({
-      message: "Known Error",
+    logger.warn("Handled Application Error", {
       error: err.message,
-      url: req.originalUrl,
       method: req.method,
+      url: req.originalUrl,
+      user: req.user?.id || "guest",
     });
   }
 
-  return res.status(status).json({
+  res.status(status).json({
     success: false,
-    message: data,
+    message,
     timestamp: new Date().toISOString(),
   });
 };
 
-/**
- * Handles uncaught exceptions
- * Logs the error and gracefully shuts down the process
- */
-const HandleUnCaughtException = async (error) => {
-  logger.error({
-    message: "Uncaught Exception",
-    error: error.message,
-    stack: error.stack,
-  });
-  console.error("Uncaught Exception:", error);
+/* ---------------- GLOBAL CRASH HANDLERS ---------------- */
 
-  // Give time for logging to complete before exit
-  setTimeout(() => {
-    process.exit(1);
-  }, 1000);
+const HandleUnCaughtException = (error) => {
+  try {
+    logger.error("Uncaught Exception", {
+      message: error.message,
+      stack: error.stack,
+    });
+  } catch {
+    fallbackLog(error);
+  }
+  process.exit(1);
 };
 
-/**
- * Handles unhandled promise rejections
- */
-const HandleUnhandledRejection = async (reason, promise) => {
-  logger.error({
-    message: "Unhandled Promise Rejection",
-    reason: reason,
-    promise: promise,
-  });
-  console.error("Unhandled Promise Rejection:", reason);
-
-  // Give time for logging to complete before exit
-  setTimeout(() => {
-    process.exit(1);
-  }, 1000);
+const HandleUnhandledRejection = (reason) => {
+  try {
+    logger.error("Unhandled Promise Rejection", {
+      message: reason?.message || reason,
+      stack: reason?.stack,
+    });
+  } catch {
+    fallbackLog(reason);
+  }
+  process.exit(1);
 };
 
 module.exports = {

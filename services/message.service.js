@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const Conversation = require("../models/Conversation.js");
 const Message = require("../models/Message.js");
+const { NotFoundError } = require("../utils/error/errors.js");
 
 const sendMessageService = async ({ conversationId, senderId, content }) => {
   const session = await mongoose.startSession();
@@ -12,7 +13,7 @@ const sendMessageService = async ({ conversationId, senderId, content }) => {
     const conversation =
       await Conversation.findById(conversationId).session(session);
     if (!conversation) {
-      throw new Error("Conversation not found");
+      throw new NotFoundError("Conversation not found");
     }
 
     // 2️⃣ Check sender is a participant (via conversation participants array)
@@ -20,7 +21,7 @@ const sendMessageService = async ({ conversationId, senderId, content }) => {
       (p) => p.toString() === senderId.toString(),
     );
     if (!isParticipant) {
-      throw new Error("User is not a participant of this conversation");
+      throw new NotFoundError("User is not a participant of this conversation");
     }
 
     // 3️⃣ Create message
