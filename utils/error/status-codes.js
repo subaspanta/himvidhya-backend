@@ -1,7 +1,3 @@
-/**
- * HTTP Status Codes
- * Centralized status codes for consistent error handling
- */
 const STATUS_CODES = {
   OK: 200,
   CREATED: 201,

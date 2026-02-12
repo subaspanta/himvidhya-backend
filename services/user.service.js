@@ -1,4 +1,5 @@
 const User = require("../models/User.js");
+const { NotFoundError, AuthorizeError } = require("../utils/error/errors.js");
 
 const getAllUsers = async () => {
   const users = await User.find().select("-passwordHash");
@@ -9,7 +10,7 @@ const getUserById = async (userId) => {
   const user = await User.findById(userId).select("-passwordHash");
 
   if (!user) {
-    throw new Error("User not found");
+    throw new NotFoundError("User not found");
   }
 
   return user;
@@ -22,7 +23,7 @@ const updateUserProfile = async (
 ) => {
   // Only user can update their own profile
   if (userId !== requestingUserId) {
-    throw new Error("Unauthorized");
+    throw new AuthorizeError("Unauthorized");
   }
 
   const user = await User.findByIdAndUpdate(
@@ -32,7 +33,7 @@ const updateUserProfile = async (
   ).select("-passwordHash");
 
   if (!user) {
-    throw new Error("User not found");
+    throw new NotFoundError("User not found");
   }
 
   return user;

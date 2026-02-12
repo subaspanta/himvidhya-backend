@@ -1,15 +1,18 @@
 const User = require("../models/User.js");
 const { generateToken } = require("../config/jwt.js");
 const crypto = require("crypto");
+const {
+  ConflictError,
+  AuthenticationError,
+} = require("../utils/error/errors.js");
 
 const registerUserService = async ({ name, email, username, password }) => {
-  // Check if user exists
   const existingUser = await User.findOne({
     $or: [{ email }, ...(username ? [{ username }] : [])],
   });
 
   if (existingUser) {
-    throw new Error("Email or username already exists");
+    throw new ConflictError("Email or username already exists");
   }
 
   // Create user (password will be hashed by the pre-save hook)
@@ -28,13 +31,13 @@ const loginUserService = async ({ email, password }) => {
   const user = await User.findOne({ email });
 
   if (!user) {
-    throw new Error("Invalid credentials");
+    throw new AuthenticationError("Invalid credentials");
   }
 
   const isMatch = await user.comparePassword(password);
 
   if (!isMatch) {
-    throw new Error("Invalid credentials");
+    throw new AuthenticationError("Invalid credentials");
   }
 
   // Generate JWT token
@@ -64,7 +67,7 @@ const verifyOTPService = async (email, otp) => {
     resetPasswordOTPExpires: { $gt: Date.now() },
   });
 
-  if (!user) throw new Error("Invalid or expired OTP");
+  if (!user) throw new AuthenticationError("Invalid or expired OTP");
   return { valid: true, userId: user._id };
 };
 
@@ -75,9 +78,9 @@ const resetPasswordService = async (email, otp, newPassword) => {
     resetPasswordOTPExpires: { $gt: Date.now() },
   });
 
-  if (!user) throw new Error("Invalid or expired OTP");
+  if (!user) throw new AuthenticationError("Invalid or expired OTP");
 
-  user.passwordHash = newPassword; // pre-save hook hashes
+  user.passwordHash = newPassword;
   user.resetPasswordOTP = undefined;
   user.resetPasswordOTPExpires = undefined;
   user.passwordChangedAt = new Date();
