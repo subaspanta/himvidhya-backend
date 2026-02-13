@@ -5,20 +5,36 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
+      required: [true, "Name is required"],
       trim: true,
     },
     email: {
       type: String,
-      required: true,
+      required: [true, "Email is required"],
       unique: true,
       lowercase: true,
       trim: true,
     },
+    phone: {
+      type: String,
+      trim: true,
+      sparse: true,
+      unique: true,
+    },
     passwordHash: {
       type: String,
+      required: [true, "Password is required"],
+      minlength: [8, "Password must be at least 8 characters"],
+    },
+    role: {
+      type: String,
+      enum: ["student", "teacher", "moderator", "admin"],
+      default: "student",
       required: true,
-      minlength: 6,
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
     },
     avatar: {
       type: String,
@@ -28,15 +44,22 @@ const userSchema = new mongoose.Schema(
       type: String,
       unique: true,
       sparse: true,
+      trim: true,
     },
     resetPasswordOTP: String,
     resetPasswordOTPExpires: Date,
     passwordChangedAt: Date,
+    roleChangedAt: Date,
   },
   { timestamps: true },
 );
 
-// Hash password before saving
+// Indexes
+userSchema.index({ email: 1 });
+userSchema.index({ phone: 1 }, { sparse: true });
+userSchema.index({ role: 1 });
+
+// Hash password
 userSchema.pre("save", async function (next) {
   if (!this.isModified("passwordHash")) return next();
 
@@ -49,20 +72,26 @@ userSchema.pre("save", async function (next) {
   }
 });
 
-// Compare password method
+// Compare password
 userSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.passwordHash);
 };
 
-// Hide sensitive fields in JSON response
+// Hide sensitive fields
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.passwordHash;
   delete obj.resetPasswordOTP;
   delete obj.resetPasswordOTPExpires;
   delete obj.passwordChangedAt;
+  delete obj.roleChangedAt;
   delete obj.__v;
   return obj;
 };
+
+// Optional virtual
+userSchema.virtual("displayName").get(function () {
+  return this.name || this.username || this.email?.split("@")[0] || "User";
+});
 
 module.exports = mongoose.model("User", userSchema);

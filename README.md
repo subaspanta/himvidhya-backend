@@ -36,11 +36,13 @@ npm install
 ## Environment Setup
 
 1. Copy `.env.example` to `.env`:
+
 ```bash
 cp .env.example .env
 ```
 
 2. Update `.env` with your configuration:
+
 - `MONGODB_URI`: Your MongoDB connection string
 - `JWT_SECRET`: A strong secret key for JWT
 - `PORT`: Server port (default: 5000)
@@ -49,11 +51,13 @@ cp .env.example .env
 ## Running the Server
 
 Development mode (with auto-reload):
+
 ```bash
 npm run dev
 ```
 
 Production mode:
+
 ```bash
 npm start
 ```
@@ -61,17 +65,20 @@ npm start
 ## API Endpoints
 
 ### Authentication
+
 - `POST /api/auth/register` - Register a new user
 - `POST /api/auth/login` - Login user
 - `POST /api/auth/logout` - Logout user
 - `POST /api/auth/refresh` - Refresh JWT token
 
 ### Users
+
 - `GET /api/users/:id` - Get user profile
 - `PUT /api/users/:id` - Update user profile
 - `GET /api/users/search?q=query` - Search users
 
 ### Conversations
+
 - `GET /api/conversations` - Get all conversations
 - `POST /api/conversations` - Create new conversation
 - `GET /api/conversations/:id/messages` - Get messages in conversation
@@ -79,6 +86,7 @@ npm start
 ## Socket.IO Events
 
 ### Client → Server
+
 - `join-room` - Join a conversation room
 - `send-message` - Send a message
 - `typing` - User is typing
@@ -86,6 +94,7 @@ npm start
 - `disconnect` - User disconnected
 
 ### Server → Client
+
 - `receive-message` - New message received
 - `user-typing` - User is typing
 - `user-stopped-typing` - User stopped typing
@@ -95,6 +104,7 @@ npm start
 ## Learning Resources
 
 This backend demonstrates:
+
 - Clean code architecture and best practices
 - RESTful API design
 - Real-time communication with WebSockets
@@ -102,7 +112,3 @@ This backend demonstrates:
 - MongoDB schema design
 - Error handling and validation
 - Rate limiting and security
-
-## License
-
-MIT
