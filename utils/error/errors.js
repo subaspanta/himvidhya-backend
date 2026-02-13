@@ -17,18 +17,35 @@ class APIError extends BaseError {
   }
 }
 
+// Use ValidationError for schema/input validation failures (e.g., missing required fields, invalid format)
 class ValidationError extends BaseError {
   constructor(description = "Validation failed") {
     super("ValidationError", STATUS_CODES.BAD_REQUEST, description);
   }
 }
 
+// Use BadRequestError for malformed requests or invalid operations (e.g., invalid request syntax, cannot process)
+class BadRequestError extends BaseError {
+  constructor(description = "Bad request") {
+    super("BadRequestError", STATUS_CODES.BAD_REQUEST, description);
+  }
+}
+
+// Use AuthorizeError for authenticated users lacking permissions (e.g., student trying to access admin route)
 class AuthorizeError extends BaseError {
   constructor(description = "Access denied") {
     super("AuthorizeError", STATUS_CODES.FORBIDDEN, description);
   }
 }
 
+// Use ForbiddenError when access is prohibited regardless of authentication (e.g., banned user, blocked resource)
+class ForbiddenError extends BaseError {
+  constructor(description = "Forbidden") {
+    super("ForbiddenError", STATUS_CODES.FORBIDDEN, description);
+  }
+}
+
+// Use AuthenticationError when user credentials are missing or invalid (e.g., no token, invalid login)
 class AuthenticationError extends BaseError {
   constructor(description = "Authentication required") {
     super("AuthenticationError", STATUS_CODES.UNAUTHORIZED, description);
@@ -46,6 +63,7 @@ class ConflictError extends BaseError {
     super("ConflictError", STATUS_CODES.CONFLICT, description);
   }
 }
+
 const handleNotFound = (req, res) => {
   res.status(404).json({
     success: false,
@@ -59,7 +77,9 @@ module.exports = {
   BaseError,
   APIError,
   ValidationError,
+  BadRequestError,
   AuthorizeError,
+  ForbiddenError,
   AuthenticationError,
   NotFoundError,
   ConflictError,

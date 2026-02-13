@@ -4,47 +4,55 @@ const { unauthorizedResponse } = require("../utils/responseParser.js");
 
 const protect = async (req, res, next) => {
   try {
-    const token = req.cookies.token;
+    // Support both cookie and Bearer token
+    let token = req.cookies?.token;
+    if (!token && req.headers.authorization?.startsWith("Bearer ")) {
+      token = req.headers.authorization.split(" ")[1];
+    }
 
     if (!token) {
       return unauthorizedResponse(res, "Not authorized - No token provided");
     }
 
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return unauthorizedResponse(res, "Invalid or expired token");
+    let decoded;
+    try {
+      decoded = verifyToken(token);
+    } catch (jwtError) {
+      if (jwtError.name === "TokenExpiredError") {
+        return unauthorizedResponse(
+          res,
+          "Session expired - please login again",
+        );
+      }
+      return unauthorizedResponse(res, "Invalid or malformed token");
     }
 
-    const user = await User.findById(decoded.userId);
+    const user = await User.findById(decoded.userId).select("-passwordHash");
 
     if (!user) {
       return unauthorizedResponse(res, "User not found");
     }
 
-    // Check if password was changed after token was issued
-    if (user.passwordChangedAt && decoded.passwordChangedAt) {
-      if (
-        user.passwordChangedAt.getTime() >
-        new Date(decoded.passwordChangedAt).getTime()
-      ) {
+    // Password changed after token issued?
+    if (user.passwordChangedAt && decoded.iat) {
+      const tokenIssuedAt = new Date(decoded.iat * 1000); // iat is in seconds
+      if (user.passwordChangedAt > tokenIssuedAt) {
         return unauthorizedResponse(
           res,
-          "Password changed, please login again",
+          "Password changed - please login again",
         );
       }
     }
 
-    req.userId = decoded.userId;
     req.user = user;
     next();
   } catch (error) {
     console.error("Auth middleware error:", error);
-    const genericError =
+    const message =
       process.env.NODE_ENV === "production"
         ? "Authentication failed"
         : error.message;
-    return unauthorizedResponse(res, genericError);
+    return unauthorizedResponse(res, message);
   }
 };
 

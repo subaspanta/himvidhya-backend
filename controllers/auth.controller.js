@@ -188,21 +188,24 @@ const resetPassword = async (req, res, next) => {
 const getCurrentUser = async (req, res) => {
   try {
     // req.user already populated by protect middleware
-    const user = await User.findById(req.userId);
+    const user = req.user;
 
     if (!user) {
       return unauthorizedResponse(res, "User not found");
     }
 
-    logger.info(`[AUTH] getCurrentUser - userId: ${req.userId}`);
+    logger.info(`[AUTH] getCurrentUser - userId: ${user._id}`);
 
     return successResponse(
       res,
       {
         id: user._id,
+        name: user.name,
         username: user.username,
         email: user.email,
         avatar: user.avatar,
+        role: user.role,
+        isVerified: user.isVerified,
       },
       "User retrieved successfully",
     );
