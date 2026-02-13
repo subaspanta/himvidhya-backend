@@ -76,21 +76,28 @@ const getClassByIdService = async (classId, userId) => {
   }
 
   const classDoc = await Class.findById(classId)
-    .populate("creator", "name email username avatar")
-    .populate("members.user", "name email username avatar role")
-    .lean();
+    .populate("creator", "name email username avatar role") // populate creator details
+    .populate("members.user", "name email username avatar role") // populate member user details
+    .lean(); // lean() makes it faster (plain JS object)
 
   if (!classDoc) {
     throw new NotFoundError("Class not found");
   }
 
-  if (!classDoc.isMember(userId)) {
+  // Security: only members can see class details
+  const isMember = classDoc.members.some(
+    (m) => m.user._id.toString() === userId.toString(),
+  );
+
+  if (!isMember) {
     throw new ForbiddenError("You are not a member of this class");
   }
 
+  // Optional: add computed fields for frontend convenience
+  classDoc.membersCount = classDoc.members.length;
+
   return classDoc;
 };
-
 module.exports = {
   createClassService,
   joinClassService,
