@@ -7,7 +7,6 @@ const {
   getMyClassesController,
   getClassByIdController,
 } = require("../controllers/classes.controller");
-const restrictTo = require("../middleware/roleMiddleware");
 
 router.post("/", createClassController);
 router.post("/join", joinClassController);
