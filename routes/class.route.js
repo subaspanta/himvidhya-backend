@@ -6,7 +6,7 @@ const {
   joinClassController,
   getMyClassesController,
   getClassByIdController,
-} = require("../controllers/classes.controller");
+} = require("../controllers/class.controller");
 
 router.post("/", createClassController);
 router.post("/join", joinClassController);

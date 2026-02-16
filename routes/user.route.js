@@ -5,8 +5,8 @@ const {
   updateUser,
   searchUser,
 } = require("../controllers/user.controller.js");
-const protect = require("../middleware/authMiddleware.js");
-const User = require("../models/User.js");
+const protect = require("../middleware/auth.middleware.js");
+const User = require("../models/User.model.js");
 
 const router = express.Router();
 

@@ -1,7 +1,3 @@
-/**
- * Validation middleware for request body validation using Zod schemas
- * Usage: app.post("/route", validate(schema), handler)
- */
 const { validationErrorResponse } = require("../utils/responseParser.js");
 
 const validate = (schema) => {

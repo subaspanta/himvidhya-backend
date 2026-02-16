@@ -34,7 +34,7 @@ const classSchema = new mongoose.Schema(
       trim: true,
       maxlength: [100],
     },
-    code: {
+    joinCode: {
       type: String,
       required: [true, "Join code is required"],
       unique: true,
@@ -68,8 +68,8 @@ const classSchema = new mongoose.Schema(
 
 classSchema.index({ code: 1 }, { unique: true });
 classSchema.index({ creator: 1 });
-classSchema.index({ "members.user": 1 }); // Fast lookup: user's classes
-classSchema.index({ createdAt: -1 }); // Recent classes first
+classSchema.index({ "members.user": 1 });
+classSchema.index({ createdAt: -1 });
 
 classSchema.pre("save", async function (next) {
   if (this.isNew) {

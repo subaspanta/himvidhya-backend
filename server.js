@@ -1,8 +1,6 @@
 const dotenv = require("dotenv");
 const express = require("express");
 const cors = require("cors");
-const http = require("http");
-const { Server: SocketIO } = require("socket.io");
 const connectDB = require("./config/database.js");
 const {
   HandleErrorWithLogger,
@@ -10,24 +8,14 @@ const {
   HandleUnhandledRejection,
   handleNotFound,
 } = require("./utils/error");
-const authRoutes = require("./routes/authRoutes.js");
-const protectedRoutes = require("./routes/protectedRoutes.js");
-const initializeSocket = require("./sockets/chatSocket.js");
+const authRoutes = require("./routes/auth.route.js");
+const protectedRoutes = require("./routes/protected.route.js");
 const cookieParser = require("cookie-parser");
 const { getVersionedPath, API_VERSION } = require("./config/apiVersion.js");
 
 dotenv.config();
 
 const app = express();
-const server = http.createServer(app);
-
-// const io = new SocketIO(server, {
-//   cors: {
-//     origin: process.env.CLIENT_URL || "http://localhost:3000",
-//     methods: ["GET", "POST"],
-//   },
-// });
-
 const helmet = require("helmet");
 
 app.use(helmet());
@@ -55,7 +43,6 @@ process.on("uncaughtException", HandleUnCaughtException);
 
 process.on("unhandledRejection", HandleUnhandledRejection);
 
-// initializeSocket(io);
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
@@ -88,7 +75,7 @@ async function startServer() {
     }
 
     await connectDB();
-    server.listen(PORT, () => {
+    app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });
   } catch (error) {

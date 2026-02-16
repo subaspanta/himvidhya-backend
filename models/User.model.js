@@ -15,12 +15,6 @@ const userSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
-    phone: {
-      type: String,
-      trim: true,
-      sparse: true,
-      unique: true,
-    },
     passwordHash: {
       type: String,
       required: [true, "Password is required"],
@@ -40,12 +34,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
-    username: {
-      type: String,
-      unique: true,
-      sparse: true,
-      trim: true,
-    },
     resetPasswordOTP: String,
     resetPasswordOTPExpires: Date,
     passwordChangedAt: Date,
@@ -56,7 +44,6 @@ const userSchema = new mongoose.Schema(
 
 // Indexes
 userSchema.index({ email: 1 });
-userSchema.index({ phone: 1 }, { sparse: true });
 userSchema.index({ role: 1 });
 
 // Hash password
@@ -91,7 +78,7 @@ userSchema.methods.toJSON = function () {
 
 // Optional virtual
 userSchema.virtual("displayName").get(function () {
-  return this.name || this.username || this.email?.split("@")[0] || "User";
+  return this.name || this.email?.split("@")[0] || "User";
 });
 
 module.exports = mongoose.model("User", userSchema);

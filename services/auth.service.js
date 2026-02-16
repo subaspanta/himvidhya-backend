@@ -1,4 +1,4 @@
-const User = require("../models/User.js");
+const User = require("../models/User.model.js");
 const { generateToken } = require("../config/jwt.js");
 const crypto = require("crypto");
 const {
@@ -6,20 +6,17 @@ const {
   AuthenticationError,
 } = require("../utils/error/errors.js");
 
-const registerUserService = async ({ name, email, username, password }) => {
-  const existingUser = await User.findOne({
-    $or: [{ email }, ...(username ? [{ username }] : [])],
-  });
+const registerUserService = async ({ name, email, password }) => {
+  const existingUser = await User.findOne({ email });
 
   if (existingUser) {
-    throw new ConflictError("Email or username already exists");
+    throw new ConflictError("Email already exists");
   }
 
   // Create user (password will be hashed by the pre-save hook)
   const user = await User.create({
     name,
     email,
-    username,
     passwordHash: password,
   });
 
