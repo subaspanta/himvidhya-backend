@@ -1,5 +1,5 @@
 const { generateToken } = require("../config/jwt.js");
-const errorHandler = require("../middleware/errorHandler.js");
+const errorHandler = require("../middleware/errorHandler.middleware.js");
 const { logger } = require("../logger.js");
 const {
   forgetPasswordService,
@@ -9,7 +9,7 @@ const {
   verifyOTPService,
 } = require("../services/auth.service.js");
 const { sendOTPEmail } = require("../utils/email.js");
-const User = require("../models/User.js");
+const User = require("../models/User.model.js");
 const {
   createdResponse,
   successResponse,
@@ -20,13 +20,12 @@ const {
 
 const register = async (req, res, next) => {
   try {
-    const { name, email, username, password } = req.body;
+    const { name, email, password } = req.body;
 
     // Data is already validated by Zod middleware
     const { user } = await registerUserService({
       name,
       email,
-      username,
       password,
     });
 
@@ -48,9 +47,9 @@ const register = async (req, res, next) => {
       "User registered successfully",
     );
   } catch (error) {
-    if (error.message === "Email or username already exists") {
+    if (error.message === "Email already exists") {
       logger.warn(
-        `Registration failed: ${req.body.email} - Email/username already exists`,
+        `Registration failed: ${req.body.email} - Email already exists`,
       );
       return conflictResponse(res, error.message);
     }
@@ -201,7 +200,6 @@ const getCurrentUser = async (req, res) => {
       {
         id: user._id,
         name: user.name,
-        username: user.username,
         email: user.email,
         avatar: user.avatar,
         role: user.role,

@@ -43,7 +43,7 @@ function prepareEmailForForgetPassword(user, _) {
 
 function prepareEmailForRegisterSuccess(data) {
   var emaildata = {
-    name: data.username,
+    name: data.name,
     email: data.email,
   };
   const email = acknowledgeEmailBody(emaildata);

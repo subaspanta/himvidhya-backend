@@ -3,10 +3,10 @@ const {
   joinClassService,
   getMyClassesService,
   getClassByIdService,
-} = require("../services/classService");
+} = require("../services/class.service.js");
 
 const { BadRequestError } = require("../utils/error/errors.js");
-const asyncHandler = require("../helpers/asyncHandler");
+const asyncHandler = require("../helpers/asyncHandler.js");
 
 // Create a new class (teacher only)
 

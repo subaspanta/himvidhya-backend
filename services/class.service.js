@@ -1,4 +1,4 @@
-const Class = require("../models/Class.js");
+const Class = require("../models/Class.model.js");
 const {
   ConflictError,
   NotFoundError,
@@ -63,7 +63,7 @@ const getMyClassesService = async (userId) => {
     "members.user": userId,
   })
     .select("name subject code members creator createdAt")
-    .populate("creator", "name email username avatar")
+    .populate("creator", "name email avatar")
     .sort({ createdAt: -1 })
     .lean();
 
@@ -76,8 +76,8 @@ const getClassByIdService = async (classId, userId) => {
   }
 
   const classDoc = await Class.findById(classId)
-    .populate("creator", "name email username avatar role") // populate creator details
-    .populate("members.user", "name email username avatar role") // populate member user details
+    .populate("creator", "name email avatar role") // populate creator details
+    .populate("members.user", "name email avatar role") // populate member user details
     .lean(); // lean() makes it faster (plain JS object)
 
   if (!classDoc) {

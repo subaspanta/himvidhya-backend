@@ -1,5 +1,3 @@
-// Utility functions for common operations
-
 const formatResponse = (success, data, message = "") => {
   return {
     success,

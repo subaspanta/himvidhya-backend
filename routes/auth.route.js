@@ -8,9 +8,9 @@ const {
   resetPassword,
   getCurrentUser,
 } = require("../controllers/auth.controller.js");
-const protect = require("../middleware/authMiddleware.js");
-const { authLimiter } = require("../middleware/rateLimiter.js");
-const validate = require("../middleware/validateRequest.js");
+const protect = require("../middleware/auth.middleware.js");
+const { authLimiter } = require("../middleware/rateLimiter.middleware.js");
+const validate = require("../middleware/validateRequest.middleware.js");
 const {
   registerSchema,
   loginSchema,
