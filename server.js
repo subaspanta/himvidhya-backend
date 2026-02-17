@@ -9,9 +9,12 @@ const {
   handleNotFound,
 } = require("./utils/error");
 const authRoutes = require("./routes/auth.route.js");
-const protectedRoutes = require("./routes/protected.route.js");
+const classRoutes = require("./routes/class.route.js");
+const attendanceRoutes = require("./routes/attendance.route.js");
+const userRoutes = require("./routes/user.route.js");
+
 const cookieParser = require("cookie-parser");
-const { getVersionedPath, API_VERSION } = require("./config/apiVersion.js");
+const { getVersionedPath } = require("./config/apiVersion.js");
 
 dotenv.config();
 
@@ -32,7 +35,9 @@ app.use(express.urlencoded({ limit: "10mb", extended: true }));
 // API Routes with versioning
 const apiV1Path = getVersionedPath("v1");
 app.use(`${apiV1Path}/auth`, authRoutes);
-app.use(apiV1Path, protectedRoutes);
+app.use(`${apiV1Path}/class`, classRoutes);
+app.use(`${apiV1Path}/attendance`, attendanceRoutes);
+app.use(`${apiV1Path}/users`, userRoutes);
 
 // 404 handler
 app.use(handleNotFound);
