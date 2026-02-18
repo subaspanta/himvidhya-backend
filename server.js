@@ -52,7 +52,15 @@ const PORT = process.env.PORT || 5000;
 
 async function startServer() {
   try {
-    const requiredEnvVars = ["MONGODB_URI", "JWT_SECRET", "CLIENT_URL"];
+    const requiredEnvVars = [
+      "MONGODB_URI",
+      "JWT_ACCESS_SECRET",
+      "JWT_REFRESH_SECRET",
+      "ACCESS_TOKEN_EXPIRES_IN",
+      "REFRESH_TOKEN_EXPIRES_IN",
+      "CLIENT_URL",
+    ];
+
     const missingEnvVars = requiredEnvVars.filter(
       (envVar) => !process.env[envVar],
     );
@@ -69,9 +77,11 @@ async function startServer() {
         "EMAIL_SENDER_PASSWORD",
         "FRONTEND_URL",
       ];
+
       const missingEmailVars = emailEnvVars.filter(
         (envVar) => !process.env[envVar],
       );
+
       if (missingEmailVars.length > 0) {
         throw new Error(
           `Missing email configuration variables: ${missingEmailVars.join(", ")}`,
@@ -80,6 +90,7 @@ async function startServer() {
     }
 
     await connectDB();
+
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
     });

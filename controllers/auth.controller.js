@@ -1,4 +1,8 @@
-const { generateToken } = require("../config/jwt.js");
+const {
+  signAccessToken,
+  signRefreshToken,
+  verifyRefreshToken,
+} = require("../config/jwt");
 const errorHandler = require("../middleware/errorHandler.middleware.js");
 const { logger } = require("../logger.js");
 const {
@@ -22,20 +26,32 @@ const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
-    // Data is already validated by Zod middleware
     const { user } = await registerUserService({
       name,
       email,
       password,
     });
 
-    const token = generateToken(user);
-    res.cookie("token", token, {
+    const accessToken = signAccessToken({ userId: user._id, role: user.role });
+    const refreshToken = signRefreshToken({ userId: user._id });
+
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.cookie("accessToken", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      maxAge: 15 * 60 * 1000, // 15 minutes
       path: "/",
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: "/api/v1/auth/refresh",
     });
 
     // Log successful registration
@@ -62,24 +78,33 @@ const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
-    // Data is already validated by Zod middleware
     const { user } = await loginUserService({ email, password });
 
-    const token = generateToken(user);
-    res.cookie("token", token, {
+    const accessToken = signAccessToken({ userId: user._id, role: user.role });
+    const refreshToken = signRefreshToken({ userId: user._id });
+
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.cookie("accessToken", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      maxAge: 15 * 60 * 1000, // 15 minutes
       path: "/",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    // Log successful login
-    logger.info(`User logged in: ${email} (ID: ${user._id})`);
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: "/api/v1/auth/refresh", // optional hardening
+    });
 
     return successResponse(res, { user: user.toJSON() }, "Login successful");
   } catch (error) {
-    if (error.message === "Invalid credentials") {
+    if (error.message === "Invalid email or password") {
       logger.warn(`Login failed: ${req.body.email} - Invalid credentials`);
       return unauthorizedResponse(res, error.message);
     }
@@ -87,20 +112,41 @@ const login = async (req, res, next) => {
     next(error);
   }
 };
-const logout = (req, res, next) => {
+
+const logout = async (req, res, next) => {
   try {
-    res.clearCookie("token", {
+    // Cookie options must match exactly with how they were set
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+    };
+
+    // Clear accessToken cookie
+    res.clearCookie("accessToken", {
+      ...cookieOptions,
       path: "/",
     });
 
-    // Log logout event
-    logger.info(`User logged out: ${req.user?.email || "Unknown"}`);
+    // Clear refreshToken cookie
+    res.clearCookie("refreshToken", {
+      ...cookieOptions,
+      path: "/api/v1/auth/refresh",
+    });
+
+    // Invalidate refresh token in DB
+    if (req.user) {
+      const user = await User.findById(req.user._id);
+      if (user) {
+        user.refreshToken = null;
+        await user.save();
+        logger.info(`User logged out: ${user.email} (ID: ${user._id})`);
+      }
+    }
 
     return successResponse(res, null, "Logged out successfully");
   } catch (error) {
+    logger.error(`Logout error: ${error.message}`);
     next(error);
   }
 };
@@ -154,14 +200,27 @@ const resetPassword = async (req, res, next) => {
     // Data is already validated by Zod middleware
     const user = await resetPasswordService(email, otp, password);
 
-    // Auto-login: generate token and set cookie
-    const tokenValue = generateToken(user);
-    res.cookie("token", tokenValue, {
+    // Auto-login: generate tokens and set cookies
+    const accessToken = signAccessToken({ userId: user._id, role: user.role });
+    const refreshToken = signRefreshToken({ userId: user._id });
+
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.cookie("accessToken", accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      maxAge: 15 * 60 * 1000, // 15 minutes
       path: "/",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: "/api/v1/auth/refresh",
     });
 
     // Log successful password reset
@@ -213,6 +272,39 @@ const getCurrentUser = async (req, res) => {
   }
 };
 
+const refreshAccessToken = async (req, res) => {
+  try {
+    const token = req.cookies.refreshToken;
+    if (!token) {
+      return unauthorizedResponse(res, "Refresh token missing");
+    }
+
+    const payload = verifyRefreshToken(token);
+
+    const user = await User.findById(payload.userId);
+    if (!user || user.refreshToken !== token) {
+      return unauthorizedResponse(res, "Invalid refresh token");
+    }
+
+    const newAccessToken = signAccessToken({
+      userId: user._id,
+      role: user.role,
+    });
+
+    res.cookie("accessToken", newAccessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+      maxAge: 15 * 60 * 1000,
+      path: "/",
+    });
+
+    return successResponse(res, null, "Access token refreshed");
+  } catch (error) {
+    return unauthorizedResponse(res, "Refresh token expired or invalid");
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -221,4 +313,5 @@ module.exports = {
   verifyOTP,
   resetPassword,
   getCurrentUser,
+  refreshAccessToken,
 };

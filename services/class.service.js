@@ -7,21 +7,17 @@ const {
 } = require("../utils/error/errors.js");
 
 const createClassService = async ({ name, subject }, userId) => {
-  // Optional: Check if user has permission (though middleware should handle)
-  // But for service-layer safety
   if (!userId) {
     throw new AuthenticationError("User ID required to create class");
   }
 
-  // Generate unique code (using your static method)
-  const code = await Class.generateUniqueCode();
+  const joinCode = await Class.generateUniqueCode();
 
   const newClass = await Class.create({
     name,
     subject: subject || undefined,
-    code,
+    joinCode,
     creator: userId,
-    // members will auto-include creator as teacher via pre-save hook
   });
 
   return newClass;
@@ -32,7 +28,7 @@ const joinClassService = async (code, userId) => {
     throw new BadRequestError("Class code and user ID are required");
   }
 
-  const classDoc = await Class.findOne({ code });
+  const classDoc = await Class.findOne({ joinCode: code });
 
   if (!classDoc) {
     throw new NotFoundError("Class not found with this code");
@@ -62,7 +58,7 @@ const getMyClassesService = async (userId) => {
   const classes = await Class.find({
     "members.user": userId,
   })
-    .select("name subject code members creator createdAt")
+    .select("name subject joinCode members creator createdAt")
     .populate("creator", "name email avatar")
     .sort({ createdAt: -1 })
     .lean();

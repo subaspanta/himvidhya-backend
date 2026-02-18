@@ -1,5 +1,5 @@
 const User = require("../models/User.model.js");
-const { generateToken } = require("../config/jwt.js");
+const { signAccessToken, signRefreshToken } = require("../config/jwt.js");
 const crypto = require("crypto");
 const {
   ConflictError,
@@ -20,9 +20,7 @@ const registerUserService = async ({ name, email, password }) => {
     passwordHash: password,
   });
 
-  const token = generateToken(user);
-
-  return { user, token };
+  return { user };
 };
 const loginUserService = async ({ email, password }) => {
   const user = await User.findOne({ email });
@@ -37,10 +35,7 @@ const loginUserService = async ({ email, password }) => {
     throw new AuthenticationError("Invalid credentials");
   }
 
-  // Generate JWT token
-  const token = generateToken(user);
-
-  return { user, token };
+  return { user };
 };
 
 const forgetPasswordService = async (email) => {

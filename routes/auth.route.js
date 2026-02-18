@@ -7,6 +7,7 @@ const {
   verifyOTP,
   resetPassword,
   getCurrentUser,
+  refreshAccessToken,
 } = require("../controllers/auth.controller.js");
 const protect = require("../middleware/auth.middleware.js");
 const { authLimiter } = require("../middleware/rateLimiter.middleware.js");
@@ -18,13 +19,16 @@ const {
   verifyOTPSchema,
   resetPasswordSchema,
 } = require("../schemas/validationSchemas.js");
+
 const { successResponse } = require("../utils/responseParser.js");
+const { getPasswordRequirements } = require("../config/passwordRules.js");
 
 const router = express.Router();
 
 router.post("/register", authLimiter, validate(registerSchema), register);
 router.post("/login", authLimiter, validate(loginSchema), login);
-router.post("/logout", logout);
+router.post("/refresh", refreshAccessToken);
+router.post("/logout", protect, logout);
 router.post(
   "/forget-password",
   authLimiter,
@@ -43,17 +47,7 @@ router.post(
 router.get("/password-requirements", (req, res) => {
   successResponse(
     res,
-    {
-      requirements: {
-        minLength: 8,
-        mustInclude: {
-          uppercase: "At least one uppercase letter (A-Z)",
-          number: "At least one number (0-9)",
-          symbol: "At least one special character (!@#$%^&*)",
-        },
-        description: "Password must meet all requirements above",
-      },
-    },
+    { requirements: getPasswordRequirements() },
     "Password requirements retrieved successfully",
   );
 });

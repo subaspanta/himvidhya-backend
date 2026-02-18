@@ -1,4 +1,5 @@
 const { z } = require("zod");
+const { PASSWORD_RULES } = require("../config/passwordRules.js");
 
 // Email validation schema
 const emailSchema = z
@@ -9,10 +10,22 @@ const emailSchema = z
 // Password validation schema
 const passwordSchema = z
   .string()
-  .min(8, "Password must be at least 8 characters")
-  .regex(/[A-Z]/, "Password must include an uppercase letter")
-  .regex(/[0-9]/, "Password must include a number")
-  .regex(/[^A-Za-z0-9]/, "Password must include a special character");
+  .min(
+    PASSWORD_RULES.minLength,
+    `Password must be at least ${PASSWORD_RULES.minLength} characters`,
+  )
+  .regex(
+    PASSWORD_RULES.mustInclude.uppercase.regex,
+    PASSWORD_RULES.mustInclude.uppercase.message,
+  )
+  .regex(
+    PASSWORD_RULES.mustInclude.number.regex,
+    PASSWORD_RULES.mustInclude.number.message,
+  )
+  .regex(
+    PASSWORD_RULES.mustInclude.symbol.regex,
+    PASSWORD_RULES.mustInclude.symbol.message,
+  );
 
 // Registration schema
 const registerSchema = z.object({
