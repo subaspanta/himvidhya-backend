@@ -66,7 +66,7 @@ const classSchema = new mongoose.Schema(
   },
 );
 
-classSchema.index({ code: 1 }, { unique: true });
+classSchema.index({ joinCode: 1 }, { unique: true });
 classSchema.index({ creator: 1 });
 classSchema.index({ "members.user": 1 });
 classSchema.index({ createdAt: -1 });
@@ -107,7 +107,7 @@ classSchema.statics.generateUniqueCode = async function () {
 
   while (!isUnique && attempts < maxAttempts) {
     code = Math.random().toString(36).substring(2, 10).toUpperCase(); // 8 chars
-    isUnique = !(await this.findOne({ code }));
+    isUnique = !(await this.findOne({ joinCode: code }));
   }
 
   if (!isUnique) {

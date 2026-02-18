@@ -8,9 +8,11 @@ const {
   getClassByIdController,
 } = require("../controllers/class.controller");
 
-router.post("/", createClassController);
-router.post("/join", joinClassController);
-router.get("/my", getMyClassesController);
-router.get("/:id", getClassByIdController);
+const protect = require("../middleware/auth.middleware");
+
+router.post("/", protect, createClassController);
+router.post("/join", protect, joinClassController);
+router.get("/my", protect, getMyClassesController);
+router.get("/:id", protect, getClassByIdController);
 
 module.exports = router;
