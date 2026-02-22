@@ -30,7 +30,7 @@ const createClassController = asyncHandler(async (req, res) => {
 
 const joinClassController = asyncHandler(async (req, res) => {
   const { code } = req.body;
-  console.log({ code });
+  // console.log({ code });
   if (!code) {
     throw new BadRequestError("Join code is required");
   }

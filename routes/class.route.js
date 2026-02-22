@@ -8,12 +8,21 @@ const {
   getClassByIdController,
 } = require("../controllers/class.controller");
 
-const protect = require("../middleware/auth.middleware");
-const requireRole = require("../middleware/role.middleware");
+const {
+  authenticate,
+  authorize,
+  attachUser,
+} = require("../middleware/auth.middleware.js");
 
-router.post("/", protect, requireRole("teacher"), createClassController);
-router.post("/join", protect, joinClassController);
-router.get("/my", protect, getMyClassesController);
-router.get("/:id", protect, getClassByIdController);
+router.post(
+  "/",
+  authenticate,
+  authorize({ permissions: ["CREATE_CLASS"] }),
+  createClassController,
+);
+
+router.post("/join", authenticate, joinClassController);
+router.get("/my", authenticate, attachUser, getMyClassesController);
+router.get("/:id", authenticate, getClassByIdController);
 
 module.exports = router;

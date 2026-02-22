@@ -5,24 +5,24 @@ const {
   updateUser,
   searchUser,
 } = require("../controllers/user.controller.js");
-const protect = require("../middleware/auth.middleware.js");
+const { authenticate } = require("../middleware/auth.middleware.js");
 const User = require("../models/User.model.js");
 
 const router = express.Router();
 
 // Search users (must come before /:id to avoid conflict)
-router.get("/search", protect, searchUser);
+router.get("/search", authenticate, searchUser);
 
 // Get all users
-router.get("/", protect, getUsers);
+router.get("/", authenticate, getUsers);
 
 // Get user profile
-router.get("/:id", protect, getUser);
+router.get("/:id", authenticate, getUser);
 
 // Update user profile
-router.put("/:id", protect, updateUser);
+router.put("/:id", authenticate, updateUser);
 
-router.get("/profile", protect, async (req, res) => {
+router.get("/profile", authenticate, async (req, res) => {
   const user = await User.findById(req.userId).select("-passwordHash");
   res.json(user);
 });

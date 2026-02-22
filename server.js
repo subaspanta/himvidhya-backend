@@ -71,24 +71,6 @@ async function startServer() {
       );
     }
 
-    if (process.env.NODE_ENV === "production") {
-      const emailEnvVars = [
-        "EMAIL_SENDER_USER",
-        "EMAIL_SENDER_PASSWORD",
-        "FRONTEND_URL",
-      ];
-
-      const missingEmailVars = emailEnvVars.filter(
-        (envVar) => !process.env[envVar],
-      );
-
-      if (missingEmailVars.length > 0) {
-        throw new Error(
-          `Missing email configuration variables: ${missingEmailVars.join(", ")}`,
-        );
-      }
-    }
-
     await connectDB();
 
     app.listen(PORT, () => {

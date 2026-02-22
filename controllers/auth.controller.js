@@ -3,7 +3,6 @@ const {
   signRefreshToken,
   verifyRefreshToken,
 } = require("../config/jwt");
-const errorHandler = require("../middleware/errorHandler.middleware.js");
 const { logger } = require("../logger.js");
 const {
   forgetPasswordService,
@@ -21,6 +20,7 @@ const {
   conflictResponse,
   unauthorizedResponse,
 } = require("../utils/responseParser.js");
+const { getPermissionsFromRole } = require("../helpers/permissions.js");
 
 const register = async (req, res, next) => {
   try {
@@ -245,8 +245,16 @@ const resetPassword = async (req, res, next) => {
 
 const getCurrentUser = async (req, res) => {
   try {
-    // req.user already populated by protect middleware
-    const user = req.user;
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return unauthorizedResponse(res, "Unauthorized");
+    }
+
+    // ✅ Always fetch fresh user (important)
+    const user = await User.findById(userId).select(
+      "_id name email avatar role isVerified",
+    );
 
     if (!user) {
       return unauthorizedResponse(res, "User not found");
@@ -254,18 +262,23 @@ const getCurrentUser = async (req, res) => {
 
     logger.info(`[AUTH] getCurrentUser - userId: ${user._id}`);
 
-    return successResponse(
-      res,
-      {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar,
-        role: user.role,
+    // ✅ DTO shaping (frontend contract)
+    const userDTO = {
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      role: user.role,
+
+      // 🔥 NEW: backend-driven RBAC
+      permissions: getPermissionsFromRole(user.role),
+
+      meta: {
         isVerified: user.isVerified,
       },
-      "User retrieved successfully",
-    );
+    };
+
+    return successResponse(res, userDTO, "User retrieved successfully");
   } catch (error) {
     logger.error(`[AUTH] getCurrentUser error: ${error.message}`);
     return errorResponse(res, "Failed to fetch user", 500);
