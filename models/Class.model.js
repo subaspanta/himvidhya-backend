@@ -60,6 +60,23 @@ const classSchema = new mongoose.Schema(
       trim: true,
       maxlength: [500],
     },
+    maxStudents: {
+      type: Number,
+      default: 40,
+    },
+    attendanceRate: {
+      type: Number,
+      default: 0,
+    },
+    nextDeadline: {
+      type: Date,
+      default: null,
+    },
+    status: {
+      type: String,
+      default: "active",
+      enum: ["active", "archived", "pending"],
+    },
   },
   {
     timestamps: true,

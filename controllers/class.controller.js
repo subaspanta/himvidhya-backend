@@ -17,7 +17,10 @@ const createClassController = asyncHandler(async (req, res) => {
     throw new BadRequestError("Class name is required");
   }
 
-  const classData = await createClassService({ name, subject }, req.user._id);
+  const classData = await createClassService(
+    { name, subject },
+    req.auth.userId,
+  );
 
   res.status(201).json({
     success: true,
@@ -35,7 +38,7 @@ const joinClassController = asyncHandler(async (req, res) => {
     throw new BadRequestError("Join code is required");
   }
 
-  const classData = await joinClassService(code, req.user._id);
+  const classData = await joinClassService(code, req.auth.userId);
 
   res.json({
     success: true,
@@ -47,12 +50,37 @@ const joinClassController = asyncHandler(async (req, res) => {
 // Get all classes the current user is part of
 
 const getMyClassesController = asyncHandler(async (req, res) => {
-  const classes = await getMyClassesService(req.user._id);
+  const classes = await getMyClassesService(req.auth.userId);
+
+  // Map classes to batch structure
+  const batches = (classes || []).map((cls) => {
+    // Calculate studentCount from members
+    const studentCount = Array.isArray(cls.members)
+      ? cls.members.filter((m) => m.role === "student").length
+      : 0;
+    // Calculate lastActivity (stub: use updatedAt)
+    const lastActivity = cls.updatedAt ? cls.updatedAt.toISOString() : null;
+    // unreadMessages (stub: 0, unless you have a message model)
+    const unreadMessages = 0;
+    return {
+      id: cls._id,
+      name: cls.name,
+      subject: cls.subject,
+      code: cls.joinCode,
+      studentCount,
+      maxStudents: cls.maxStudents,
+      lastActivity,
+      unreadMessages,
+      attendanceRate: cls.attendanceRate,
+      nextDeadline: cls.nextDeadline,
+      status: cls.status || (cls.isActive ? "active" : "archived"),
+    };
+  });
 
   res.json({
     success: true,
     message: "Classes retrieved successfully",
-    data: classes,
+    data: batches,
   });
 });
 
@@ -65,7 +93,7 @@ const getClassByIdController = asyncHandler(async (req, res) => {
     throw new BadRequestError("Class ID is required");
   }
 
-  const classData = await getClassByIdService(id, req.user._id);
+  const classData = await getClassByIdService(id, req.auth.userId);
 
   res.json({
     success: true,
