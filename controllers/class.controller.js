@@ -6,6 +6,10 @@ const {
 } = require("../services/class.service.js");
 
 const { BadRequestError } = require("../utils/error/errors.js");
+const {
+  createdResponse,
+  successResponse,
+} = require("../utils/responseParser.js");
 const asyncHandler = require("../helpers/asyncHandler.js");
 
 // Create a new class (teacher only)
@@ -22,11 +26,11 @@ const createClassController = asyncHandler(async (req, res) => {
     req.auth.userId,
   );
 
-  res.status(201).json({
-    success: true,
-    message: "Class created successfully",
-    data: classData,
-  });
+  return createdResponse(
+    res,
+    { class: classData },
+    "Class created successfully",
+  );
 });
 
 // Join a class using join code
@@ -40,11 +44,11 @@ const joinClassController = asyncHandler(async (req, res) => {
 
   const classData = await joinClassService(code, req.auth.userId);
 
-  res.json({
-    success: true,
-    message: "Successfully joined the class",
-    data: classData,
-  });
+  return successResponse(
+    res,
+    { class: classData },
+    "Successfully joined the class",
+  );
 });
 
 // Get all classes the current user is part of
@@ -77,11 +81,11 @@ const getMyClassesController = asyncHandler(async (req, res) => {
     };
   });
 
-  res.json({
-    success: true,
-    message: "Classes retrieved successfully",
-    data: batches,
-  });
+  return successResponse(
+    res,
+    { classes: batches },
+    "Classes retrieved successfully",
+  );
 });
 
 // Get details of a specific class (only if member)
@@ -95,11 +99,11 @@ const getClassByIdController = asyncHandler(async (req, res) => {
 
   const classData = await getClassByIdService(id, req.auth.userId);
 
-  res.json({
-    success: true,
-    message: "Class details retrieved successfully",
-    data: classData,
-  });
+  return successResponse(
+    res,
+    { class: classData },
+    "Class details retrieved successfully",
+  );
 });
 
 module.exports = {

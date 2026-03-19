@@ -51,7 +51,7 @@ const register = async (req, res, next) => {
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: "/api/v1/auth/refresh",
+      path: "/api/v1/auth/refresh-token",
     });
 
     // Log successful registration
@@ -99,7 +99,7 @@ const login = async (req, res, next) => {
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: "/api/v1/auth/refresh", // optional hardening
+      path: "/api/v1/auth/refresh-token", // optional hardening
     });
 
     return successResponse(res, { user: user.toJSON() }, "Login successful");
@@ -131,7 +131,7 @@ const logout = async (req, res, next) => {
     // Clear refreshToken cookie
     res.clearCookie("refreshToken", {
       ...cookieOptions,
-      path: "/api/v1/auth/refresh",
+      path: "/api/v1/auth/refresh-token",
     });
 
     // Invalidate refresh token in DB
@@ -220,7 +220,7 @@ const resetPassword = async (req, res, next) => {
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: "/api/v1/auth/refresh",
+      path: "/api/v1/auth/refresh-token",
     });
 
     // Log successful password reset
