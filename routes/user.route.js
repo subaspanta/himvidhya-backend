@@ -17,14 +17,14 @@ router.get("/search", authenticate, searchUser);
 router.get("/", authenticate, getUsers);
 
 // Get user profile
-router.get("/:id", authenticate, getUser);
 
 // Update user profile
-router.put("/:id", authenticate, updateUser);
-
 router.get("/profile", authenticate, async (req, res) => {
-  const user = await User.findById(req.userId).select("-passwordHash");
+  console.log(req.auth);
+  const user = await User.findById(req.auth.userId).select("-passwordHash");
   res.json(user);
 });
+router.get("/:id", authenticate, getUser);
+router.put("/:id", authenticate, updateUser);
 
 module.exports = router;

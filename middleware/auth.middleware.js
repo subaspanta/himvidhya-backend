@@ -6,44 +6,34 @@ const {
 const User = require("../models/User.model.js");
 
 // Authenticate: verifies JWT and attaches minimal user info to req.auth
-const authenticate = (req, res, next) => {
+const authenticate = async (req, res, next) => {
   try {
     const token = req.cookies?.accessToken;
+
     if (!token) {
-      console.log("[AUTH] No access token found in cookies");
       return unauthorizedResponse(res, "Not authorized");
     }
 
     const decoded = verifyAccessToken(token);
-    // Fetch full user from DB
-    User.findById(decoded.userId)
-      .select("-passwordHash")
-      .then((user) => {
-        if (!user) {
-          console.log(
-            "[AUTH] User not found for decoded.userId:",
-            decoded.userId,
-          );
-          req.auth = undefined;
-          return unauthorizedResponse(res, "User not found");
-        }
-        req.auth = {
-          userId: user._id,
-          role: user.role,
-          permissions: user.permissions || [],
-          name: user.name,
-          email: user.email,
-        };
-        console.log("[AUTH] Authenticated user:", req.auth);
-        next();
-      })
-      .catch((err) => {
-        console.log("[AUTH] Error fetching user:", err);
-        req.auth = undefined;
-        return unauthorizedResponse(res, "Failed to fetch user");
-      });
+
+    // Now try/catch covers this too ✅
+    const user = await User.findById(decoded.userId).select("-passwordHash");
+
+    if (!user) {
+      return unauthorizedResponse(res, "User not found");
+    }
+
+    req.auth = {
+      userId: user._id,
+      role: user.role,
+      permissions: user.permissions || [],
+      name: user.name,
+      email: user.email,
+    };
+
+    next();
   } catch (error) {
-    console.log("[AUTH] Invalid or expired token:", error);
+    // Catches ALL errors — sync and async ✅
     return unauthorizedResponse(res, "Invalid or expired token");
   }
 };
