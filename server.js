@@ -1,3 +1,14 @@
+process.on("uncaughtException", (err) => {
+  console.error("UNCAUGHT:", err.message);
+  console.error(err.stack);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("UNHANDLED REJECTION:", reason);
+  process.exit(1);
+});
+
 const dotenv = require("dotenv");
 const express = require("express");
 const cors = require("cors");
@@ -51,6 +62,10 @@ process.on("unhandledRejection", HandleUnhandledRejection);
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
+  process.on("uncaughtException", (err) => {
+    console.error("CRASH:", err.message);
+    console.error(err.stack);
+  });
   try {
     const requiredEnvVars = [
       "MONGODB_URI",

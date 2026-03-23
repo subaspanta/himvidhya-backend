@@ -1,13 +1,31 @@
-const restrictTo = (...roles) => {
+// requirePermission: for complex attribute-based checks
+// uses req.auth (always set by authenticate middleware)
+// optionally uses req.classDoc if attached by a previous middleware
+const requirePermission = (permissionFn) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
+    if (!req.auth) {
+      return res.status(401).json({
+        success: false,
+        message: "Not authenticated",
+      });
+    }
+
+    const context = {
+      classDoc: req.classDoc,
+      channel: req.body?.channel || req.query?.channel,
+    };
+
+    const hasPermission = permissionFn(req.auth, context);
+
+    if (!hasPermission) {
       return res.status(403).json({
         success: false,
         message: "You do not have permission to perform this action",
       });
     }
+
     next();
   };
 };
 
-module.exports = restrictTo;
+module.exports = requirePermission;

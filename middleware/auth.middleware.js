@@ -21,28 +21,37 @@ const authenticate = async (req, res, next) => {
     if (!user) {
       return unauthorizedResponse(res, "User not found");
     }
+    if (!user.isActive) {
+      return unauthorizedResponse(res, "Account deactivated");
+    }
 
     req.auth = {
       userId: user._id,
       role: user.role,
       name: user.name,
       email: user.email,
+      isVerified: user.isVerified,
     };
+
     req.user = user;
+
     next();
   } catch (error) {
     return unauthorizedResponse(res, "Invalid or expired token");
   }
 };
 
-//  checks roles only
+// Authorize: simple role check using req.auth
+// Use for straightforward role-based route protection
+// For complex attribute-based checks use requirePermission from role.middleware.js
 const authorize =
   ({ roles = [] }) =>
   (req, res, next) => {
-    const user = req.auth;
+    if (!req.auth) {
+      return forbiddenResponse(res, "Not authenticated");
+    }
 
-    // Role check
-    if (roles.length && !roles.includes(user.role)) {
+    if (roles.length && !roles.includes(req.auth.role)) {
       return forbiddenResponse(res, "Insufficient role");
     }
 

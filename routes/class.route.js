@@ -25,8 +25,12 @@ router.post(
 router.get("/my", authenticate, getMyClassesController);
 
 // Join flow
-router.post("/join", authenticate, joinClassController);
-
+router.post(
+  "/join",
+  authenticate,
+  authorize({ roles: ["student"] }),
+  joinClassController,
+);
 // Join requests (teacher only)
 router.get(
   "/requests/count",
