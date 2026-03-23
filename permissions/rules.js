@@ -27,8 +27,8 @@ const canSendMessageInChannel = (user, context = {}) => {
   const { channel } = context;
 
   if (channel === "announcements") {
-    // Only teachers & moderators can post in announcements
-    return ["teacher", "moderator"].includes(user.role);
+    // Only teachers & admins can post in announcements
+    return ["teacher", "admin"].includes(user.role);
   }
 
   // Other channels: everyone

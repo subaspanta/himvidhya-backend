@@ -1,6 +1,10 @@
 const {
   createClassService,
   joinClassService,
+  approveJoinRequestService,
+  rejectJoinRequestService,
+  getTeacherJoinRequestsService,
+  getTeacherJoinRequestsCountService,
   getMyClassesService,
   getClassByIdService,
 } = require("../services/class.service.js");
@@ -13,7 +17,6 @@ const {
 const asyncHandler = require("../helpers/asyncHandler.js");
 
 // Create a new class (teacher only)
-
 const createClassController = asyncHandler(async (req, res) => {
   const { name, subject } = req.body;
 
@@ -33,39 +36,96 @@ const createClassController = asyncHandler(async (req, res) => {
   );
 });
 
-// Join a class using join code
-
+// Student requests to join a class using join code
 const joinClassController = asyncHandler(async (req, res) => {
   const { code } = req.body;
-  // console.log({ code });
+
   if (!code) {
     throw new BadRequestError("Join code is required");
   }
 
-  const classData = await joinClassService(code, req.auth.userId);
+  const joinRequest = await joinClassService(code, req.auth.userId);
+
+  return createdResponse(
+    res,
+    { joinRequest },
+    "Join request submitted successfully",
+  );
+});
+
+// Teacher approves a join request
+const approveJoinRequestController = asyncHandler(async (req, res) => {
+  const { requestId } = req.params;
+
+  if (!requestId) {
+    throw new BadRequestError("Request ID is required");
+  }
+
+  const joinRequest = await approveJoinRequestService(
+    requestId,
+    req.auth.userId,
+  );
 
   return successResponse(
     res,
-    { class: classData },
-    "Successfully joined the class",
+    { joinRequest },
+    "Join request approved successfully",
+  );
+});
+
+// Teacher rejects a join request
+const rejectJoinRequestController = asyncHandler(async (req, res) => {
+  const { requestId } = req.params;
+
+  if (!requestId) {
+    throw new BadRequestError("Request ID is required");
+  }
+
+  const joinRequest = await rejectJoinRequestService(
+    requestId,
+    req.auth.userId,
+  );
+
+  return successResponse(
+    res,
+    { joinRequest },
+    "Join request rejected successfully",
+  );
+});
+
+// Get all pending join requests for teacher's classes (for sidebar list)
+const getTeacherJoinRequestsController = asyncHandler(async (req, res) => {
+  const requests = await getTeacherJoinRequestsService(req.auth.userId);
+
+  return successResponse(
+    res,
+    { requests },
+    "Join requests retrieved successfully",
+  );
+});
+
+// Get pending join request count (for sidebar badge)
+const getTeacherJoinRequestsCountController = asyncHandler(async (req, res) => {
+  const count = await getTeacherJoinRequestsCountService(req.auth.userId);
+
+  return successResponse(
+    res,
+    { count },
+    "Join request count retrieved successfully",
   );
 });
 
 // Get all classes the current user is part of
-
 const getMyClassesController = asyncHandler(async (req, res) => {
   const classes = await getMyClassesService(req.auth.userId);
 
-  // Map classes to batch structure
   const batches = (classes || []).map((cls) => {
-    // Calculate studentCount from members
     const studentCount = Array.isArray(cls.members)
       ? cls.members.filter((m) => m.role === "student").length
       : 0;
-    // Calculate lastActivity (stub: use updatedAt)
+
     const lastActivity = cls.updatedAt ? cls.updatedAt.toISOString() : null;
-    // unreadMessages (stub: 0, unless you have a message model)
-    const unreadMessages = 0;
+
     return {
       id: cls._id,
       name: cls.name,
@@ -74,10 +134,10 @@ const getMyClassesController = asyncHandler(async (req, res) => {
       studentCount,
       maxStudents: cls.maxStudents,
       lastActivity,
-      unreadMessages,
+      unreadMessages: 0,
       attendanceRate: cls.attendanceRate,
       nextDeadline: cls.nextDeadline,
-      status: cls.status || (cls.isActive ? "active" : "archived"),
+      status: cls.status || "active",
     };
   });
 
@@ -89,7 +149,6 @@ const getMyClassesController = asyncHandler(async (req, res) => {
 });
 
 // Get details of a specific class (only if member)
-
 const getClassByIdController = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
@@ -109,6 +168,10 @@ const getClassByIdController = asyncHandler(async (req, res) => {
 module.exports = {
   createClassController,
   joinClassController,
+  approveJoinRequestController,
+  rejectJoinRequestController,
+  getTeacherJoinRequestsController,
+  getTeacherJoinRequestsCountController,
   getMyClassesController,
   getClassByIdController,
 };

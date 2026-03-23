@@ -12,7 +12,6 @@ function generateAccessToken(user) {
     {
       userId: user._id,
       role: user.role,
-      permissions: user.permissions,
     },
     jwtSecret,
     { expiresIn: jwtExpiresIn },

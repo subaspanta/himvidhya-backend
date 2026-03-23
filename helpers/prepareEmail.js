@@ -51,9 +51,7 @@ function prepareEmailForRegisterSuccess(data) {
 }
 
 module.exports = {
-  prepareEmailToInformSuperUserForBusinessReg,
   prepareEmailForForgetPassword,
   prepareEmailForRegisterSuccess,
-  prepareSuccessEmailBusinessCreation,
   structureTheEmail,
 };

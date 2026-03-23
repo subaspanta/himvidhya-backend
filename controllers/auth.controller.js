@@ -3,6 +3,7 @@ const {
   signRefreshToken,
   verifyRefreshToken,
 } = require("../config/jwt");
+const bcrypt = require("bcryptjs");
 const { logger } = require("../logger.js");
 const {
   forgetPasswordService,
@@ -20,7 +21,6 @@ const {
   conflictResponse,
   unauthorizedResponse,
 } = require("../utils/responseParser.js");
-const { getPermissionsFromRole } = require("../helpers/permissions.js");
 
 const register = async (req, res, next) => {
   try {
@@ -35,7 +35,8 @@ const register = async (req, res, next) => {
     const accessToken = signAccessToken({ userId: user._id, role: user.role });
     const refreshToken = signRefreshToken({ userId: user._id });
 
-    user.refreshToken = refreshToken;
+    // Store only a hashed version of the refresh token in DB
+    user.refreshToken = await bcrypt.hash(refreshToken, 10);
     await user.save();
 
     res.cookie("accessToken", accessToken, {
@@ -83,7 +84,8 @@ const login = async (req, res, next) => {
     const accessToken = signAccessToken({ userId: user._id, role: user.role });
     const refreshToken = signRefreshToken({ userId: user._id });
 
-    user.refreshToken = refreshToken;
+    // Store only a hashed version of the refresh token in DB
+    user.refreshToken = await bcrypt.hash(refreshToken, 10);
     await user.save();
 
     res.cookie("accessToken", accessToken, {
@@ -204,7 +206,8 @@ const resetPassword = async (req, res, next) => {
     const accessToken = signAccessToken({ userId: user._id, role: user.role });
     const refreshToken = signRefreshToken({ userId: user._id });
 
-    user.refreshToken = refreshToken;
+    // Store only a hashed version of the refresh token in DB
+    user.refreshToken = await bcrypt.hash(refreshToken, 10);
     await user.save();
 
     res.cookie("accessToken", accessToken, {
@@ -269,10 +272,6 @@ const getCurrentUser = async (req, res) => {
       email: user.email,
       avatar: user.avatar,
       role: user.role,
-
-      // 🔥 NEW: backend-driven RBAC
-      permissions: getPermissionsFromRole(user.role),
-
       meta: {
         isVerified: user.isVerified,
       },
@@ -295,7 +294,12 @@ const refreshAccessToken = async (req, res) => {
     const payload = verifyRefreshToken(token);
 
     const user = await User.findById(payload.userId);
-    if (!user || user.refreshToken !== token) {
+    if (!user || !user.refreshToken) {
+      return unauthorizedResponse(res, "Invalid refresh token");
+    }
+
+    const isMatch = await bcrypt.compare(token, user.refreshToken);
+    if (!isMatch) {
       return unauthorizedResponse(res, "Invalid refresh token");
     }
 

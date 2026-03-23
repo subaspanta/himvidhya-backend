@@ -9,11 +9,11 @@ const {
   getCurrentUser,
   refreshAccessToken,
 } = require("../controllers/auth.controller.js");
+const { authenticate } = require("../middleware/auth.middleware.js");
 const {
-  authenticate,
-  attachUser,
-} = require("../middleware/auth.middleware.js");
-const { authLimiter } = require("../middleware/rateLimiter.middleware.js");
+  authLimiter,
+  refreshLimiter,
+} = require("../middleware/rateLimiter.middleware.js");
 const validate = require("../middleware/validateRequest.middleware.js");
 const {
   registerSchema,
@@ -23,14 +23,11 @@ const {
   resetPasswordSchema,
 } = require("../schemas/validationSchemas.js");
 
-const { successResponse } = require("../utils/responseParser.js");
-const { getPasswordRequirements } = require("../config/passwordRules.js");
-
 const router = express.Router();
 
 router.post("/register", authLimiter, validate(registerSchema), register);
 router.post("/login", authLimiter, validate(loginSchema), login);
-router.post("/refresh-token", refreshAccessToken);
+router.post("/refresh-token", refreshLimiter, refreshAccessToken);
 router.post("/logout", authenticate, logout);
 router.post(
   "/forget-password",
@@ -47,6 +44,6 @@ router.post(
 );
 
 // Get current authenticated user
-router.get("/me", authenticate, attachUser, getCurrentUser);
+router.get("/me", authenticate, getCurrentUser);
 
 module.exports = router;

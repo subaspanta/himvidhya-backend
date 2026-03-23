@@ -28,5 +28,8 @@ const apiLimiter = rateLimit({
     });
   },
 });
-
-module.exports = { authLimiter, apiLimiter };
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30, // more lenient than authLimiter
+});
+module.exports = { authLimiter, apiLimiter, refreshLimiter };

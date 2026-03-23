@@ -22,18 +22,21 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["student", "teacher", "moderator", "admin"],
+      enum: ["student", "teacher", "admin"],
       default: "student",
       required: true,
     },
-    permissions: {
-      type: [String],
-      default: [],
+    isActive: {
+      type: Boolean,
+      default: true,
     },
     isVerified: {
       type: Boolean,
       default: false,
     },
+    // For now this stores a full URL; if you move to
+    // providers like Cloudinary or S3, prefer storing
+    // only the provider-specific public ID instead.
     avatar: {
       type: String,
       default: null,
@@ -53,6 +56,7 @@ const userSchema = new mongoose.Schema(
 // Indexes
 userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
+userSchema.index({ resetPasswordOTP: 1 });
 
 // Hash password
 userSchema.pre("save", async function (next) {
