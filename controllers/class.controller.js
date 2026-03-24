@@ -18,14 +18,14 @@ const asyncHandler = require("../helpers/asyncHandler.js");
 
 // Create a new class (teacher only)
 const createClassController = asyncHandler(async (req, res) => {
-  const { name, subject } = req.body;
+  const { name, subject, description } = req.body;
 
   if (!name) {
     throw new BadRequestError("Class name is required");
   }
 
   const classData = await createClassService(
-    { name, subject },
+    { name, subject, description },
     req.auth.userId,
   );
 

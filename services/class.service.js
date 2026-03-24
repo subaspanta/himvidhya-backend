@@ -8,7 +8,7 @@ const {
   AuthenticationError,
 } = require("../utils/error/errors.js");
 
-const createClassService = async ({ name, subject }, userId) => {
+const createClassService = async ({ name, subject, description }, userId) => {
   if (!userId) {
     throw new AuthenticationError("User ID required to create class");
   }
@@ -18,6 +18,7 @@ const createClassService = async ({ name, subject }, userId) => {
   const newClass = await Class.create({
     name,
     subject: subject || undefined,
+    description: description?.trim() || undefined,
     joinCode,
     creator: userId,
   });
