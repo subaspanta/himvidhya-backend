@@ -1,70 +1,63 @@
 const { verifyAccessToken } = require("../config/jwt");
+const {
+  unauthorizedResponse,
+  forbiddenResponse,
+} = require("../utils/responseParser.js");
 const User = require("../models/User.model.js");
-const { unauthorizedResponse } = require("../utils/responseParser.js");
 
-const protect = async (req, res, next) => {
+//  verifies JWT and attaches minimal user info to req.auth
+const authenticate = async (req, res, next) => {
   try {
-    // Prefer httpOnly cookie
-    let token = req.cookies?.accessToken;
-
-    // Optional: support Bearer token for Postman / testing
-    if (!token && req.headers.authorization?.startsWith("Bearer ")) {
-      token = req.headers.authorization.split(" ")[1];
-    }
-
-    console.log("[AUTH DEBUG] Token found:", token ? "YES" : "NO");
-    console.log(
-      "[AUTH DEBUG] Cookie token:",
-      req.cookies?.accessToken ? "EXISTS" : "MISSING",
-    );
-    console.log(
-      "[AUTH DEBUG] Auth header:",
-      req.headers.authorization ? "EXISTS" : "MISSING",
-    );
+    const token = req.cookies?.accessToken;
 
     if (!token) {
-      return unauthorizedResponse(res, "Not authorized - no access token");
+      return unauthorizedResponse(res, "Not authorized");
     }
 
-    let decoded;
-    try {
-      decoded = verifyAccessToken(token);
-      console.log(
-        "[AUTH DEBUG] Token verified successfully for user:",
-        decoded.userId,
-      );
-    } catch (jwtError) {
-      console.error("[AUTH DEBUG] JWT verification failed:", jwtError.message);
-      console.error("[AUTH DEBUG] JWT error name:", jwtError.name);
-      if (jwtError.name === "TokenExpiredError") {
-        return unauthorizedResponse(res, "Access token expired");
-      }
-      return unauthorizedResponse(res, "Invalid access token");
-    }
+    const decoded = verifyAccessToken(token);
 
     const user = await User.findById(decoded.userId).select("-passwordHash");
 
     if (!user) {
       return unauthorizedResponse(res, "User not found");
     }
-
-    // Invalidate token if password changed after token was issued
-    if (user.passwordChangedAt && decoded.iat) {
-      const tokenIssuedAt = new Date(decoded.iat * 1000);
-      if (user.passwordChangedAt > tokenIssuedAt) {
-        return unauthorizedResponse(
-          res,
-          "Password changed - please login again",
-        );
-      }
+    if (!user.isActive) {
+      return unauthorizedResponse(res, "Account deactivated");
     }
 
+    req.auth = {
+      userId: user._id,
+      role: user.role,
+      name: user.name,
+      email: user.email,
+      isVerified: user.isVerified,
+    };
+
     req.user = user;
+
     next();
   } catch (error) {
-    console.error("[AUTH] protect error:", error);
-    return unauthorizedResponse(res, "Authentication failed");
+    return unauthorizedResponse(res, "Invalid or expired token");
   }
 };
 
-module.exports = protect;
+// Authorize: simple role check using req.auth
+// For complex attribute-based checks use requirePermission from role.middleware.js
+const authorize =
+  ({ roles = [] }) =>
+  (req, res, next) => {
+    if (!req.auth) {
+      return forbiddenResponse(res, "Not authenticated");
+    }
+
+    if (roles.length && !roles.includes(req.auth.role)) {
+      return forbiddenResponse(res, "Insufficient role");
+    }
+
+    next();
+  };
+
+module.exports = {
+  authenticate,
+  authorize,
+};

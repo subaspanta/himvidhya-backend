@@ -5,6 +5,9 @@ const {
   ValidationError,
   AuthorizeError,
   AuthenticationError,
+  BadRequestError,
+  ForbiddenError,
+  ConflictError,
 } = require("./errors");
 const { logger } = require("../../logger");
 
@@ -19,7 +22,7 @@ const fallbackLog = (err) => {
 
 /* ---------------- EXPRESS ERROR MIDDLEWARE ---------------- */
 
-const HandleErrorWithLogger = (err, req, res, next) => {
+const HandleErrorWithLogger = (err, req, res) => {
   let reportError = true;
   let status = 500;
   let message = err.message || "Internal server error";
@@ -29,6 +32,9 @@ const HandleErrorWithLogger = (err, req, res, next) => {
     ValidationError,
     AuthorizeError,
     AuthenticationError,
+    BadRequestError,
+    ForbiddenError,
+    ConflictError,
   ];
 
   knownErrors.forEach((ErrorType) => {
@@ -55,7 +61,7 @@ const HandleErrorWithLogger = (err, req, res, next) => {
       error: err.message,
       method: req.method,
       url: req.originalUrl,
-      user: req.user?.id || "guest",
+      user: req.auth?.userId || "guest",
     });
   }
 

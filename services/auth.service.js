@@ -1,10 +1,22 @@
 const User = require("../models/User.model.js");
-const { signAccessToken, signRefreshToken } = require("../config/jwt.js");
 const crypto = require("crypto");
 const {
   ConflictError,
   AuthenticationError,
 } = require("../utils/error/errors.js");
+const jwt = require("jsonwebtoken");
+const { jwtSecret, jwtExpiresIn } = require("../config/jwt");
+
+function generateAccessToken(user) {
+  return jwt.sign(
+    {
+      userId: user._id,
+      role: user.role,
+    },
+    jwtSecret,
+    { expiresIn: jwtExpiresIn },
+  );
+}
 
 const registerUserService = async ({ name, email, password }) => {
   const existingUser = await User.findOne({ email });
@@ -88,4 +100,5 @@ module.exports = {
   forgetPasswordService,
   verifyOTPService,
   resetPasswordService,
+  generateAccessToken,
 };

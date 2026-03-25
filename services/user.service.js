@@ -1,8 +1,11 @@
 const User = require("../models/User.model.js");
 const { NotFoundError, AuthorizeError } = require("../utils/error/errors.js");
 
-const getAllUsers = async () => {
-  const users = await User.find().select("-passwordHash");
+const getAllUsers = async (page = 1, limit = 20) => {
+  const users = await User.find({ isActive: true })
+    .select("-passwordHash")
+    .skip((page - 1) * limit)
+    .limit(limit);
   return users;
 };
 
@@ -21,15 +24,20 @@ const updateUserProfile = async (
   requestingUserId,
   { name, avatar },
 ) => {
-  // Only user can update their own profile
-  if (userId !== requestingUserId) {
+  // Fix: compare as strings to avoid ObjectId vs string mismatch
+  if (userId.toString() !== requestingUserId.toString()) {
     throw new AuthorizeError("Unauthorized");
   }
 
+  // Only update fields that are actually provided
+  const updates = {};
+  if (name) updates.name = name;
+  if (avatar) updates.avatar = avatar;
+
   const user = await User.findByIdAndUpdate(
     userId,
-    { name, avatar },
-    { new: true },
+    { $set: updates },
+    { new: true, runValidators: true },
   ).select("-passwordHash");
 
   if (!user) {
@@ -45,6 +53,7 @@ const searchUsers = async (query) => {
   }
 
   const users = await User.find({
+    isActive: true,
     $or: [
       { name: { $regex: query, $options: "i" } },
       { email: { $regex: query, $options: "i" } },

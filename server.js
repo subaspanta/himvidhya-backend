@@ -1,3 +1,14 @@
+process.on("uncaughtException", (err) => {
+  console.error("UNCAUGHT:", err.message);
+  console.error(err.stack);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("UNHANDLED REJECTION:", reason);
+  process.exit(1);
+});
+
 const dotenv = require("dotenv");
 const express = require("express");
 const cors = require("cors");
@@ -51,6 +62,10 @@ process.on("unhandledRejection", HandleUnhandledRejection);
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
+  process.on("uncaughtException", (err) => {
+    console.error("CRASH:", err.message);
+    console.error(err.stack);
+  });
   try {
     const requiredEnvVars = [
       "MONGODB_URI",
@@ -69,24 +84,6 @@ async function startServer() {
       throw new Error(
         `Missing required environment variables: ${missingEnvVars.join(", ")}`,
       );
-    }
-
-    if (process.env.NODE_ENV === "production") {
-      const emailEnvVars = [
-        "EMAIL_SENDER_USER",
-        "EMAIL_SENDER_PASSWORD",
-        "FRONTEND_URL",
-      ];
-
-      const missingEmailVars = emailEnvVars.filter(
-        (envVar) => !process.env[envVar],
-      );
-
-      if (missingEmailVars.length > 0) {
-        throw new Error(
-          `Missing email configuration variables: ${missingEmailVars.join(", ")}`,
-        );
-      }
     }
 
     await connectDB();

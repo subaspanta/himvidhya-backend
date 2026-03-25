@@ -4,16 +4,12 @@ const {
   updateUserProfile,
   searchUsers,
 } = require("../services/user.service.js");
-const {
-  successResponse,
-  notFoundResponse,
-  forbiddenResponse,
-  errorResponse,
-} = require("../utils/responseParser.js");
+const { successResponse } = require("../utils/responseParser.js");
 
 const getUsers = async (req, res, next) => {
   try {
-    const users = await getAllUsers();
+    const { page = 1, limit = 20 } = req.query;
+    const users = await getAllUsers(Number(page), Number(limit));
     return successResponse(res, { users }, "Users retrieved successfully");
   } catch (error) {
     next(error);
@@ -25,9 +21,6 @@ const getUser = async (req, res, next) => {
     const user = await getUserById(req.params.id);
     return successResponse(res, { user }, "User retrieved successfully");
   } catch (error) {
-    if (error.message === "User not found") {
-      return notFoundResponse(res, error.message);
-    }
     next(error);
   }
 };
@@ -35,18 +28,12 @@ const getUser = async (req, res, next) => {
 const updateUser = async (req, res, next) => {
   try {
     const { name, avatar } = req.body;
-    const user = await updateUserProfile(req.params.id, req.userId, {
+    const user = await updateUserProfile(req.params.id, req.auth.userId, {
       name,
       avatar,
     });
     return successResponse(res, { user }, "User updated successfully");
   } catch (error) {
-    if (error.message === "Unauthorized") {
-      return forbiddenResponse(res, error.message);
-    }
-    if (error.message === "User not found") {
-      return notFoundResponse(res, error.message);
-    }
     next(error);
   }
 };
@@ -61,9 +48,6 @@ const searchUser = async (req, res, next) => {
       "Search completed successfully",
     );
   } catch (error) {
-    if (error.message === "Please provide search query") {
-      return errorResponse(res, error.message, 400);
-    }
     next(error);
   }
 };

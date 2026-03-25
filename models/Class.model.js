@@ -9,7 +9,7 @@ const memberSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["teacher", "moderator", "student"],
+      enum: ["teacher", "student"],
       default: "student",
       required: true,
     },
@@ -51,14 +51,27 @@ const classSchema = new mongoose.Schema(
       type: [memberSchema],
       default: [],
     },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
     description: {
       type: String,
       trim: true,
       maxlength: [500],
+    },
+    maxStudents: {
+      type: Number,
+      default: 40,
+    },
+    attendanceRate: {
+      type: Number,
+      default: 0,
+    },
+    nextDeadline: {
+      type: Date,
+      default: null,
+    },
+    status: {
+      type: String,
+      default: "active",
+      enum: ["active", "archived", "pending"],
     },
   },
   {
@@ -102,7 +115,7 @@ classSchema.methods.getUserRole = function (userId) {
 classSchema.statics.generateUniqueCode = async function () {
   let code;
   let isUnique = false;
-  const attempts = 0;
+  let attempts = 0;
   const maxAttempts = 10;
 
   while (!isUnique && attempts < maxAttempts) {

@@ -3,7 +3,7 @@ const {
   signRefreshToken,
   verifyRefreshToken,
 } = require("../config/jwt");
-const errorHandler = require("../middleware/errorHandler.middleware.js");
+const bcrypt = require("bcryptjs");
 const { logger } = require("../logger.js");
 const {
   forgetPasswordService,
@@ -35,7 +35,8 @@ const register = async (req, res, next) => {
     const accessToken = signAccessToken({ userId: user._id, role: user.role });
     const refreshToken = signRefreshToken({ userId: user._id });
 
-    user.refreshToken = refreshToken;
+    // Store only a hashed version of the refresh token in DB
+    user.refreshToken = await bcrypt.hash(refreshToken, 10);
     await user.save();
 
     res.cookie("accessToken", accessToken, {
@@ -51,10 +52,9 @@ const register = async (req, res, next) => {
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: "/api/v1/auth/refresh",
+      path: "/api/v1/auth/refresh-token",
     });
 
-    // Log successful registration
     logger.info(`User registered: ${email} (ID: ${user._id})`);
 
     return createdResponse(
@@ -83,7 +83,8 @@ const login = async (req, res, next) => {
     const accessToken = signAccessToken({ userId: user._id, role: user.role });
     const refreshToken = signRefreshToken({ userId: user._id });
 
-    user.refreshToken = refreshToken;
+    // Store only a hashed version of the refresh token in DB
+    user.refreshToken = await bcrypt.hash(refreshToken, 10);
     await user.save();
 
     res.cookie("accessToken", accessToken, {
@@ -99,7 +100,7 @@ const login = async (req, res, next) => {
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: "/api/v1/auth/refresh", // optional hardening
+      path: "/api/v1/auth/refresh-token", // optional hardening
     });
 
     return successResponse(res, { user: user.toJSON() }, "Login successful");
@@ -122,16 +123,14 @@ const logout = async (req, res, next) => {
       sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
     };
 
-    // Clear accessToken cookie
     res.clearCookie("accessToken", {
       ...cookieOptions,
       path: "/",
     });
 
-    // Clear refreshToken cookie
     res.clearCookie("refreshToken", {
       ...cookieOptions,
-      path: "/api/v1/auth/refresh",
+      path: "/api/v1/auth/refresh-token",
     });
 
     // Invalidate refresh token in DB
@@ -197,14 +196,12 @@ const resetPassword = async (req, res, next) => {
   try {
     const { email, otp, password } = req.body;
 
-    // Data is already validated by Zod middleware
     const user = await resetPasswordService(email, otp, password);
 
-    // Auto-login: generate tokens and set cookies
     const accessToken = signAccessToken({ userId: user._id, role: user.role });
     const refreshToken = signRefreshToken({ userId: user._id });
 
-    user.refreshToken = refreshToken;
+    user.refreshToken = await bcrypt.hash(refreshToken, 10);
     await user.save();
 
     res.cookie("accessToken", accessToken, {
@@ -220,10 +217,9 @@ const resetPassword = async (req, res, next) => {
       secure: process.env.NODE_ENV === "production",
       sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: "/api/v1/auth/refresh",
+      path: "/api/v1/auth/refresh-token",
     });
 
-    // Log successful password reset
     logger.info(
       `Password reset successful for user: ${user.email} (ID: ${user._id})`,
     );
@@ -245,8 +241,15 @@ const resetPassword = async (req, res, next) => {
 
 const getCurrentUser = async (req, res) => {
   try {
-    // req.user already populated by protect middleware
-    const user = req.user;
+    const userId = req.user?._id;
+
+    if (!userId) {
+      return unauthorizedResponse(res, "Unauthorized");
+    }
+
+    const user = await User.findById(userId).select(
+      "_id name email avatar role isVerified",
+    );
 
     if (!user) {
       return unauthorizedResponse(res, "User not found");
@@ -254,18 +257,18 @@ const getCurrentUser = async (req, res) => {
 
     logger.info(`[AUTH] getCurrentUser - userId: ${user._id}`);
 
-    return successResponse(
-      res,
-      {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar,
-        role: user.role,
+    const userDTO = {
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+      role: user.role,
+      meta: {
         isVerified: user.isVerified,
       },
-      "User retrieved successfully",
-    );
+    };
+
+    return successResponse(res, userDTO, "User retrieved successfully");
   } catch (error) {
     logger.error(`[AUTH] getCurrentUser error: ${error.message}`);
     return errorResponse(res, "Failed to fetch user", 500);
@@ -282,7 +285,12 @@ const refreshAccessToken = async (req, res) => {
     const payload = verifyRefreshToken(token);
 
     const user = await User.findById(payload.userId);
-    if (!user || user.refreshToken !== token) {
+    if (!user || !user.refreshToken) {
+      return unauthorizedResponse(res, "Invalid refresh token");
+    }
+
+    const isMatch = await bcrypt.compare(token, user.refreshToken);
+    if (!isMatch) {
       return unauthorizedResponse(res, "Invalid refresh token");
     }
 
