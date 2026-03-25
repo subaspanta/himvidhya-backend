@@ -42,7 +42,6 @@ const authenticate = async (req, res, next) => {
 };
 
 // Authorize: simple role check using req.auth
-// Use for straightforward role-based route protection
 // For complex attribute-based checks use requirePermission from role.middleware.js
 const authorize =
   ({ roles = [] }) =>

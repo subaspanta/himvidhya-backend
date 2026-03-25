@@ -1,4 +1,3 @@
-// Single source of truth for password requirements
 const PASSWORD_RULES = {
   minLength: 8,
   mustInclude: {

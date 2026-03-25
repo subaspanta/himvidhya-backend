@@ -55,7 +55,6 @@ const register = async (req, res, next) => {
       path: "/api/v1/auth/refresh-token",
     });
 
-    // Log successful registration
     logger.info(`User registered: ${email} (ID: ${user._id})`);
 
     return createdResponse(
@@ -124,13 +123,11 @@ const logout = async (req, res, next) => {
       sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
     };
 
-    // Clear accessToken cookie
     res.clearCookie("accessToken", {
       ...cookieOptions,
       path: "/",
     });
 
-    // Clear refreshToken cookie
     res.clearCookie("refreshToken", {
       ...cookieOptions,
       path: "/api/v1/auth/refresh-token",
@@ -199,14 +196,11 @@ const resetPassword = async (req, res, next) => {
   try {
     const { email, otp, password } = req.body;
 
-    // Data is already validated by Zod middleware
     const user = await resetPasswordService(email, otp, password);
 
-    // Auto-login: generate tokens and set cookies
     const accessToken = signAccessToken({ userId: user._id, role: user.role });
     const refreshToken = signRefreshToken({ userId: user._id });
 
-    // Store only a hashed version of the refresh token in DB
     user.refreshToken = await bcrypt.hash(refreshToken, 10);
     await user.save();
 
@@ -226,7 +220,6 @@ const resetPassword = async (req, res, next) => {
       path: "/api/v1/auth/refresh-token",
     });
 
-    // Log successful password reset
     logger.info(
       `Password reset successful for user: ${user.email} (ID: ${user._id})`,
     );
@@ -254,7 +247,6 @@ const getCurrentUser = async (req, res) => {
       return unauthorizedResponse(res, "Unauthorized");
     }
 
-    // ✅ Always fetch fresh user (important)
     const user = await User.findById(userId).select(
       "_id name email avatar role isVerified",
     );
@@ -265,7 +257,6 @@ const getCurrentUser = async (req, res) => {
 
     logger.info(`[AUTH] getCurrentUser - userId: ${user._id}`);
 
-    // ✅ DTO shaping (frontend contract)
     const userDTO = {
       id: user._id.toString(),
       name: user.name,

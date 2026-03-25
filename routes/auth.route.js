@@ -43,7 +43,6 @@ router.post(
   resetPassword,
 );
 
-// Get current authenticated user
 router.get("/me", authenticate, getCurrentUser);
 
 module.exports = router;

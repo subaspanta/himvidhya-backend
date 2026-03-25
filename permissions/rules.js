@@ -12,7 +12,6 @@ const canViewClassDetails = (user, context = {}) => {
   const { classDoc } = context;
   if (!classDoc) return false;
 
-  // req.auth uses userId, req.user uses _id — handle both
   const userId = (user.userId || user._id)?.toString();
 
   return classDoc.members.some((m) => m.user.toString() === userId);

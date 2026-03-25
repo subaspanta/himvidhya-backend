@@ -1,6 +1,3 @@
-// requirePermission: for complex attribute-based checks
-// uses req.auth (always set by authenticate middleware)
-// optionally uses req.classDoc if attached by a previous middleware
 const requirePermission = (permissionFn) => {
   return (req, res, next) => {
     if (!req.auth) {
