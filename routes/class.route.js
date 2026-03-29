@@ -13,6 +13,8 @@ const {
 } = require("../controllers/class.controller");
 
 const { authenticate, authorize } = require("../middleware/auth.middleware.js");
+const validate = require("../middleware/validateRequest.middleware.js");
+const { joinClassSchema } = require("../schemas/validationSchemas.js");
 
 // Class CRUD
 router.post(
@@ -28,6 +30,7 @@ router.get("/my", authenticate, getMyClassesController);
 router.post(
   "/join",
   authenticate,
+  validate(joinClassSchema),
   authorize({ roles: ["student"] }),
   joinClassController,
 );
