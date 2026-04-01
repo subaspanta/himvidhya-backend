@@ -112,3 +112,39 @@ This backend demonstrates:
 - MongoDB schema design
 - Error handling and validation
 - Rate limiting and security
+
+## Fedora fresh setup and package health checks
+
+Use Node 24 from nvm:
+
+```bash
+cd ..
+nvm use
+cd server
+```
+
+Clean reinstall:
+
+```bash
+rm -rf node_modules
+npm ci
+```
+
+Dependency health checks:
+
+```bash
+npm run health:deps
+```
+
+Run backend:
+
+```bash
+npm run dev
+```
+
+Health endpoints:
+
+- `GET /health`
+- `GET /api/v1/health`
+
+The health response includes service name, version, timestamp, uptime, and MongoDB connectivity status.

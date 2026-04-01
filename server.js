@@ -12,6 +12,7 @@ process.on("unhandledRejection", (reason) => {
 const dotenv = require("dotenv");
 const express = require("express");
 const cors = require("cors");
+const mongoose = require("mongoose");
 const connectDB = require("./config/database.js");
 const {
   HandleErrorWithLogger,
@@ -43,8 +44,39 @@ app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
+function getDbStatus() {
+  const state = mongoose.connection.readyState;
+
+  if (state === 1) return "up";
+  if (state === 2) return "connecting";
+  return "down";
+}
+
+function healthPayload() {
+  return {
+    status: "ok",
+    service: "chat-backend",
+    version: process.env.npm_package_version || "unknown",
+    timestamp: new Date().toISOString(),
+    uptimeSeconds: Math.floor(process.uptime()),
+    db: getDbStatus(),
+  };
+}
+
+// Liveness/readiness probes for local and CI checks.
+app.get("/health", (_req, res) => {
+  const payload = healthPayload();
+  const code = payload.db === "up" ? 200 : 503;
+  res.status(code).json(payload);
+});
+
 // API Routes with versioning
 const apiV1Path = getVersionedPath("v1");
+app.get(`${apiV1Path}/health`, (_req, res) => {
+  const payload = healthPayload();
+  const code = payload.db === "up" ? 200 : 503;
+  res.status(code).json(payload);
+});
 app.use(`${apiV1Path}/auth`, authRoutes);
 app.use(`${apiV1Path}/class`, classRoutes);
 app.use(`${apiV1Path}/attendance`, attendanceRoutes);
