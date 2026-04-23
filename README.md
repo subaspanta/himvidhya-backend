@@ -1,150 +1,179 @@
-# Chat App Backend
+# HimVidhya Server
 
-A clean, real-time chat application backend built with Express.js, Socket.IO, and MongoDB.
+Backend API for the HimVidhya platform, built with Express.js and MongoDB.
 
-## Features
+## What This Server Includes
 
-- User authentication with JWT
-- Real-time messaging with Socket.IO
-- User profiles and conversations
-- Message history
-- Online/offline status
-- Rate limiting for API endpoints
+- JWT cookie-based authentication (access + refresh token flow)
+- Versioned REST API (`/api/v1`)
+- Role-aware authorization middleware
+- Class creation and join-request workflows
+- User management endpoints
+- Health probes for local/devops checks
+- Security middleware (helmet, cors, rate limiting)
 
-## Project Structure
+## Tech Stack
 
-```
-chat-backend/
-├── config/              # Configuration files
-├── controllers/         # Route controllers
-├── models/             # MongoDB schemas
-├── routes/             # API routes
-├── middleware/         # Custom middleware
-├── utils/              # Utility functions
-├── sockets/            # Socket.IO event handlers
-├── .env.example        # Environment variables template
-├── server.js           # Application entry point
-└── package.json
+- Node.js + Express 4
+- MongoDB + Mongoose
+- Zod validation
+- JWT + cookies
+- Winston logging
+
+## Prerequisites
+
+- Node.js `>=24 <25`
+- npm `>=11 <12`
+- MongoDB instance
+
+If you use nvm:
+
+```bash
+nvm use 24
 ```
 
 ## Installation
 
 ```bash
-npm install
+npm ci
 ```
 
 ## Environment Setup
 
-1. Copy `.env.example` to `.env`:
+Create a `.env` file in `server/` and configure the required values:
 
-```bash
-cp .env.example .env
+```env
+PORT=5000
+MONGODB_URI=mongodb://127.0.0.1:27017/himvidhya
+CLIENT_URL=http://localhost:3000
+
+JWT_ACCESS_SECRET=replace_with_strong_access_secret
+JWT_REFRESH_SECRET=replace_with_strong_refresh_secret
+ACCESS_TOKEN_EXPIRES_IN=15m
+REFRESH_TOKEN_EXPIRES_IN=7d
 ```
 
-2. Update `.env` with your configuration:
+Required at startup:
 
-- `MONGODB_URI`: Your MongoDB connection string
-- `JWT_SECRET`: A strong secret key for JWT
-- `PORT`: Server port (default: 5000)
-- `CLIENT_URL`: Your client application URL
+- `MONGODB_URI`
+- `JWT_ACCESS_SECRET`
+- `JWT_REFRESH_SECRET`
+- `ACCESS_TOKEN_EXPIRES_IN`
+- `REFRESH_TOKEN_EXPIRES_IN`
+- `CLIENT_URL`
 
 ## Running the Server
 
-Development mode (with auto-reload):
+Development:
 
 ```bash
 npm run dev
 ```
 
-Production mode:
+Production:
 
 ```bash
 npm start
 ```
 
-## API Endpoints
+Default base URL:
 
-### Authentication
+```text
+http://localhost:5000
+```
 
-- `POST /api/auth/register` - Register a new user
-- `POST /api/auth/login` - Login user
-- `POST /api/auth/logout` - Logout user
-- `POST /api/auth/refresh` - Refresh JWT token
+## Available Scripts
+
+- `npm run dev` - Start with nodemon
+- `npm start` - Start with node
+- `npm run audit:deps` - Run npm audit (high severity threshold)
+- `npm run outdated:deps` - Show outdated dependencies
+- `npm run health:deps` - Run dependency health checks
+
+## API Base Path
+
+Versioned API prefix:
+
+```text
+/api/v1
+```
+
+## Health Endpoints
+
+- `GET /health`
+- `GET /api/v1/health`
+
+Health response includes service status, version, timestamp, uptime, and DB connectivity state.
+
+## Route Overview (Current)
+
+### Auth
+
+Base: `/api/v1/auth`
+
+- `POST /register`
+- `POST /login`
+- `POST /refresh-token`
+- `POST /logout`
+- `POST /forget-password`
+- `POST /verify-otp`
+- `POST /reset-password`
+- `GET /me`
+
+### Class
+
+Base: `/api/v1/class`
+
+- `POST /` (teacher/admin)
+- `GET /my`
+- `POST /join` (student)
+- `GET /requests/count` (teacher/admin)
+- `GET /requests` (teacher/admin)
+- `PATCH /requests/:requestId/approve` (teacher/admin)
+- `PATCH /requests/:requestId/reject` (teacher/admin)
+- `GET /:id`
 
 ### Users
 
-- `GET /api/users/:id` - Get user profile
-- `PUT /api/users/:id` - Update user profile
-- `GET /api/users/search?q=query` - Search users
+Base: `/api/v1/users`
 
-### Conversations
+- `GET /search`
+- `GET /`
+- `GET /profile`
+- `GET /:id`
+- `PUT /:id`
 
-- `GET /api/conversations` - Get all conversations
-- `POST /api/conversations` - Create new conversation
-- `GET /api/conversations/:id/messages` - Get messages in conversation
+### Attendance
 
-## Socket.IO Events
+Base: `/api/v1/attendance`
 
-### Client → Server
+- Route mounted, implementation in progress.
 
-- `join-room` - Join a conversation room
-- `send-message` - Send a message
-- `typing` - User is typing
-- `stop-typing` - User stopped typing
-- `disconnect` - User disconnected
+## Project Structure
 
-### Server → Client
-
-- `receive-message` - New message received
-- `user-typing` - User is typing
-- `user-stopped-typing` - User stopped typing
-- `user-online` - User came online
-- `user-offline` - User went offline
-
-## Learning Resources
-
-This backend demonstrates:
-
-- Clean code architecture and best practices
-- RESTful API design
-- Real-time communication with WebSockets
-- JWT authentication
-- MongoDB schema design
-- Error handling and validation
-- Rate limiting and security
-
-## Fedora fresh setup and package health checks
-
-Use Node 24 from nvm:
-
-```bash
-cd ..
-nvm use
-cd server
+```text
+server/
+	config/           # App, DB, JWT, RBAC config
+	controllers/      # Request handlers by domain
+	middleware/       # Auth, validation, rate limit, error middleware
+	models/           # Mongoose schemas
+	routes/           # Versioned API route modules
+	schemas/          # Zod validation schemas
+	services/         # Domain service layer
+	utils/            # Shared helpers and error utilities
+	permissions/      # Permission rules
+	server.js         # Express entry point
+	package.json
 ```
 
-Clean reinstall:
-
-```bash
-rm -rf node_modules
-npm ci
-```
-
-Dependency health checks:
+## Local Dependency Health Check
 
 ```bash
 npm run health:deps
 ```
 
-Run backend:
+## Notes
 
-```bash
-npm run dev
-```
-
-Health endpoints:
-
-- `GET /health`
-- `GET /api/v1/health`
-
-The health response includes service name, version, timestamp, uptime, and MongoDB connectivity status.
+- CORS is configured with credentials and uses `CLIENT_URL`.
+- API versioning is managed from `config/apiVersion.js`.
+- This backend powers HimVidhya workflows; references to old chat terminology in package metadata are legacy and can be cleaned separately.
