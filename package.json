@@ -1,7 +1,7 @@
 {
-  "name": "chat-backend",
+  "name": "lms-backend",
   "version": "1.0.0",
-  "description": "A clean, real-time chat application backend with Socket.IO",
+  "description": "An Educational LMS backend handling batches, students, teachers, and attendance",
   "type": "commonjs",
   "main": "server.js",
   "engines": {
@@ -17,11 +17,8 @@
     "health:deps": "npm run audit:deps && npm run outdated:deps"
   },
   "keywords": [
-    "chat",
-    "socket.io",
     "express",
-    "mongodb",
-    "realtime"
+    "mongodb"
   ],
   "author": "",
   "license": "MIT",
@@ -36,7 +33,6 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^7.5.0",
     "nodemailer": "^7.0.13",
-    "socket.io": "^4.7.2",
     "winston": "^3.19.0",
     "zod": "^3.22.4"
   },
@@ -45,7 +41,7 @@
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^25.5.0",
-    "nodemon": "^3.0.1",
+    "nodemon": "^3.1.14",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"

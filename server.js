@@ -55,7 +55,7 @@ function getDbStatus() {
 function healthPayload() {
   return {
     status: "ok",
-    service: "chat-backend",
+    service: "lms-backend",
     version: process.env.npm_package_version || "unknown",
     timestamp: new Date().toISOString(),
     uptimeSeconds: Math.floor(process.uptime()),
