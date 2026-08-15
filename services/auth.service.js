@@ -7,6 +7,10 @@ const {
 const jwt = require("jsonwebtoken");
 const { jwtSecret, jwtExpiresIn } = require("../config/jwt");
 
+function hashOTP(otp) {
+  return crypto.createHash("sha256").update(otp).digest("hex");
+}
+
 function generateAccessToken(user) {
   return jwt.sign(
     {
@@ -55,9 +59,9 @@ const forgetPasswordService = async (email) => {
   if (!user) return null;
 
   // Generate 6-digit OTP
-  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  const otp = crypto.randomInt(100000, 1000000).toString();
 
-  user.resetPasswordOTP = otp;
+  user.resetPasswordOTP = hashOTP(otp);
   user.resetPasswordOTPExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
 
   await user.save();
@@ -67,7 +71,7 @@ const forgetPasswordService = async (email) => {
 const verifyOTPService = async (email, otp) => {
   const user = await User.findOne({
     email,
-    resetPasswordOTP: otp,
+    resetPasswordOTP: hashOTP(otp),
     resetPasswordOTPExpires: { $gt: Date.now() },
   });
 
@@ -78,7 +82,7 @@ const verifyOTPService = async (email, otp) => {
 const resetPasswordService = async (email, otp, newPassword) => {
   const user = await User.findOne({
     email,
-    resetPasswordOTP: otp,
+    resetPasswordOTP: hashOTP(otp),
     resetPasswordOTPExpires: { $gt: Date.now() },
   });
 

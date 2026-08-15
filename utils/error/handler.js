@@ -22,7 +22,7 @@ const fallbackLog = (err) => {
 
 /* ---------------- EXPRESS ERROR MIDDLEWARE ---------------- */
 
-const HandleErrorWithLogger = (err, req, res) => {
+const HandleErrorWithLogger = (err, req, res, next) => {
   let reportError = true;
   let status = 500;
   let message = err.message || "Internal server error";
