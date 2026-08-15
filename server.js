@@ -1,14 +1,3 @@
-process.on("uncaughtException", (err) => {
-  console.error("UNCAUGHT:", err.message);
-  console.error(err.stack);
-  process.exit(1);
-});
-
-process.on("unhandledRejection", (reason) => {
-  console.error("UNHANDLED REJECTION:", reason);
-  process.exit(1);
-});
-
 const dotenv = require("dotenv");
 const express = require("express");
 const cors = require("cors");
@@ -22,7 +11,6 @@ const {
 } = require("./utils/error");
 const authRoutes = require("./routes/auth.route.js");
 const classRoutes = require("./routes/class.route.js");
-const attendanceRoutes = require("./routes/attendance.route.js");
 const userRoutes = require("./routes/user.route.js");
 
 const cookieParser = require("cookie-parser");
@@ -79,7 +67,6 @@ app.get(`${apiV1Path}/health`, (_req, res) => {
 });
 app.use(`${apiV1Path}/auth`, authRoutes);
 app.use(`${apiV1Path}/class`, classRoutes);
-app.use(`${apiV1Path}/attendance`, attendanceRoutes);
 app.use(`${apiV1Path}/users`, userRoutes);
 
 // 404 handler
@@ -94,10 +81,6 @@ process.on("unhandledRejection", HandleUnhandledRejection);
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
-  process.on("uncaughtException", (err) => {
-    console.error("CRASH:", err.message);
-    console.error(err.stack);
-  });
   try {
     const requiredEnvVars = [
       "MONGODB_URI",
