@@ -13,6 +13,7 @@ const {
   updateClassController,
   archiveClassController,
   restoreClassController,
+  regenerateJoinCodeController,
 } = require("../controllers/class.controller");
 
 const { authenticate, authorize } = require("../middleware/auth.middleware.js");
@@ -89,6 +90,13 @@ router.post(
   authenticate,
   authorize({ roles: ["teacher"] }),
   restoreClassController,
+);
+
+router.post(
+  "/:classId/join-code/regenerate",
+  authenticate,
+  authorize({ roles: ["teacher"] }),
+  regenerateJoinCodeController,
 );
 
 router.get("/:id", authenticate, getClassByIdController);

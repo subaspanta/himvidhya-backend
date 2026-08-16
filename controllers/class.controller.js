@@ -10,6 +10,7 @@ const {
   updateClassService,
   archiveClassService,
   restoreClassService,
+  regenerateJoinCodeService,
 } = require("../services/class.service.js");
 
 const { BadRequestError } = require("../utils/error/errors.js");
@@ -193,6 +194,19 @@ const restoreClassController = asyncHandler(async (req, res) => {
   return successResponse(res, { class: classData }, "Class restored successfully");
 });
 
+// Owner regenerates their class's join code
+const regenerateJoinCodeController = asyncHandler(async (req, res) => {
+  const { classId } = req.params;
+
+  const classData = await regenerateJoinCodeService(classId, req.auth.userId);
+
+  return successResponse(
+    res,
+    { class: classData },
+    "Join code regenerated successfully",
+  );
+});
+
 module.exports = {
   createClassController,
   joinClassController,
@@ -205,4 +219,5 @@ module.exports = {
   updateClassController,
   archiveClassController,
   restoreClassController,
+  regenerateJoinCodeController,
 };

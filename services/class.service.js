@@ -379,6 +379,21 @@ const restoreClassService = async (classId, userId) => {
   return classDoc;
 };
 
+// Owner regenerates their class's join code (Implementation.md item 12).
+// The old code stops resolving to any class immediately; existing
+// ClassMember rows are untouched (PRD § 7.3).
+const regenerateJoinCodeService = async (classId, userId) => {
+  const classDoc = await loadClassOrThrow(classId);
+
+  assertClassOwner(classDoc, userId);
+  assertClassWritable(classDoc);
+
+  classDoc.joinCode = await Class.generateUniqueCode();
+  await classDoc.save();
+
+  return classDoc;
+};
+
 module.exports = {
   createClassService,
   joinClassService,
@@ -391,4 +406,5 @@ module.exports = {
   updateClassService,
   archiveClassService,
   restoreClassService,
+  regenerateJoinCodeService,
 };
