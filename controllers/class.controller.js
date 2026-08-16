@@ -120,10 +120,6 @@ const getMyClassesController = asyncHandler(async (req, res) => {
   const classes = await getMyClassesService(req.auth.userId);
 
   const batches = (classes || []).map((cls) => {
-    const studentCount = Array.isArray(cls.members)
-      ? cls.members.filter((m) => m.role === "student").length
-      : 0;
-
     const lastActivity = cls.updatedAt ? cls.updatedAt.toISOString() : null;
 
     return {
@@ -131,7 +127,7 @@ const getMyClassesController = asyncHandler(async (req, res) => {
       name: cls.name,
       subject: cls.subject,
       code: cls.joinCode,
-      studentCount,
+      studentCount: cls.studentCount || 0,
       lastActivity,
       unreadMessages: 0,
       status: cls.status || "active",

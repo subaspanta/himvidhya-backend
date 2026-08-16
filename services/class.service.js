@@ -1,4 +1,5 @@
 const Class = require("../models/Class.model.js");
+const ClassMember = require("../models/ClassMember.model.js");
 const JoinRequest = require("../models/JoinRequest.model.js");
 const {
   ConflictError,
@@ -43,8 +44,15 @@ const joinClassService = async (code, userId) => {
     throw new BadRequestError("Cannot join an archived class");
   }
 
-  // Check if already a member
-  if (classDoc.isMember(userId)) {
+  // Check if already an active member (owner is never a ClassMember — C2)
+  const isOwner = classDoc.owner.toString() === userId.toString();
+  const activeMembership = await ClassMember.findOne({
+    classId: classDoc._id,
+    userId,
+    status: "active",
+  });
+
+  if (isOwner || activeMembership) {
     throw new ConflictError("You are already a member of this class");
   }
 
@@ -99,17 +107,33 @@ const approveJoinRequestService = async (requestId, teacherId) => {
     throw new ForbiddenError("Only the class teacher can approve requests");
   }
 
-  // Check if somehow already a member (edge case)
-  if (classDoc.isMember(joinRequest.user)) {
+  // The owner must never become a ClassMember (C2). isMember() used to catch
+  // this transitively because the pre-save hook auto-inserted the owner as a
+  // member; now that the owner is never in ClassMember, this must be checked
+  // explicitly so a legacy or otherwise out-of-band JoinRequest can't upsert
+  // an owner row.
+  if (classDoc.owner.toString() === joinRequest.user.toString()) {
+    throw new ConflictError("Class owner cannot be added as a member");
+  }
+
+  // Check if somehow already an active member (edge case)
+  const existingActiveMembership = await ClassMember.findOne({
+    classId: classDoc._id,
+    userId: joinRequest.user,
+    status: "active",
+  });
+
+  if (existingActiveMembership) {
     throw new ConflictError("User is already a member of this class");
   }
 
-  // Add user to class members
-  classDoc.members.push({
-    user: joinRequest.user,
-    role: "student",
-  });
-  await classDoc.save();
+  // Create the membership, or reactivate a prior left/removed row for this
+  // (class, user) pair rather than inserting a duplicate.
+  await ClassMember.findOneAndUpdate(
+    { classId: classDoc._id, userId: joinRequest.user },
+    { $set: { status: "active", joinedAt: new Date() } },
+    { upsert: true, setDefaultsOnInsert: true },
+  );
 
   // Mark request as approved
   joinRequest.status = "approved";
@@ -207,17 +231,38 @@ const getMyClassesService = async (userId) => {
     throw new AuthenticationError("User ID required");
   }
 
+  // Owner is never a ClassMember (C2), so a teacher's own classes are found
+  // via Class.owner, unioned with classes they hold an active membership in.
+  const memberClassIds = await ClassMember.find({
+    userId,
+    status: "active",
+  }).distinct("classId");
+
   const classes = await Class.find({
-    "members.user": userId,
+    $or: [{ owner: userId }, { _id: { $in: memberClassIds } }],
   })
-    .select(
-      "name subject joinCode members owner createdAt updatedAt status",
-    )
+    .select("name subject joinCode owner createdAt updatedAt status")
     .populate("owner", "name email avatar role")
     .sort({ createdAt: -1 })
     .lean();
 
-  return classes;
+  if (classes.length === 0) {
+    return classes;
+  }
+
+  const classIds = classes.map((cls) => cls._id);
+  const counts = await ClassMember.aggregate([
+    { $match: { classId: { $in: classIds }, status: "active" } },
+    { $group: { _id: "$classId", count: { $sum: 1 } } },
+  ]);
+  const countByClassId = new Map(
+    counts.map((c) => [c._id.toString(), c.count]),
+  );
+
+  return classes.map((cls) => ({
+    ...cls,
+    studentCount: countByClassId.get(cls._id.toString()) || 0,
+  }));
 };
 
 const getClassByIdService = async (classId, userId) => {
@@ -227,7 +272,6 @@ const getClassByIdService = async (classId, userId) => {
 
   const classDoc = await Class.findById(classId)
     .populate("owner", "name email avatar role")
-    .populate("members.user", "name email avatar role")
     .lean();
 
   if (!classDoc) {
@@ -239,18 +283,37 @@ const getClassByIdService = async (classId, userId) => {
     throw new ForbiddenError("This class has been archived");
   }
 
-  // Security: only members can see class details
-  const isMember = classDoc.members.some(
-    (m) => m.user._id.toString() === userId.toString(),
-  );
+  // Security: owner or active member only (owner is never a ClassMember — C2)
+  const isOwner = classDoc.owner._id.toString() === userId.toString();
+  const activeMembership = isOwner
+    ? null
+    : await ClassMember.findOne({
+        classId: classDoc._id,
+        userId,
+        status: "active",
+      });
 
-  if (!isMember) {
+  if (!isOwner && !activeMembership) {
     throw new ForbiddenError("You are not a member of this class");
   }
 
+  const memberRows = await ClassMember.find({
+    classId: classDoc._id,
+    status: "active",
+  })
+    .populate("userId", "name email avatar role")
+    .sort({ joinedAt: 1 })
+    .lean();
+
+  const members = memberRows.map((row) => ({
+    user: row.userId,
+    joinedAt: row.joinedAt,
+  }));
+
   return {
     ...classDoc,
-    membersCount: classDoc.members.length,
+    members,
+    membersCount: members.length,
   };
 };
 

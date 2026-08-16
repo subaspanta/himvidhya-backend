@@ -4,6 +4,7 @@ node_modules/
 .DS_Store
 *.log
 logs/
+backups/
 dist/
 build/
 .idea/
