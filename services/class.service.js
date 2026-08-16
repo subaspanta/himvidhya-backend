@@ -338,6 +338,47 @@ const updateClassService = async (classId, userId, updates) => {
   return classDoc;
 };
 
+// Owner archives their own class (Implementation.md item 11). Deliberately
+// does not call assertClassWritable — that guard exists to block ordinary
+// writes on an already-archived class, not to express "must currently be
+// active". Archiving an already-archived class is a state conflict, not an
+// authorization failure, so it follows the existing ConflictError idiom
+// used for "already resolved" join requests rather than overloading the
+// writable guard's 403 semantics.
+const archiveClassService = async (classId, userId) => {
+  const classDoc = await loadClassOrThrow(classId);
+
+  assertClassOwner(classDoc, userId);
+
+  if (classDoc.status === "archived") {
+    throw new ConflictError("Class is already archived");
+  }
+
+  classDoc.status = "archived";
+  await classDoc.save();
+
+  return classDoc;
+};
+
+// Owner restores their own archived class (Implementation.md item 11).
+// Same reasoning as archiveClassService in reverse: assertClassWritable
+// would incorrectly 403 the one case restore exists to handle (the class
+// is archived), so this checks the inverse state directly instead.
+const restoreClassService = async (classId, userId) => {
+  const classDoc = await loadClassOrThrow(classId);
+
+  assertClassOwner(classDoc, userId);
+
+  if (classDoc.status === "active") {
+    throw new ConflictError("Class is already active");
+  }
+
+  classDoc.status = "active";
+  await classDoc.save();
+
+  return classDoc;
+};
+
 module.exports = {
   createClassService,
   joinClassService,
@@ -348,4 +389,6 @@ module.exports = {
   getMyClassesService,
   getClassByIdService,
   updateClassService,
+  archiveClassService,
+  restoreClassService,
 };

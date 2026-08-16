@@ -8,6 +8,8 @@ const {
   getMyClassesService,
   getClassByIdService,
   updateClassService,
+  archiveClassService,
+  restoreClassService,
 } = require("../services/class.service.js");
 
 const { BadRequestError } = require("../utils/error/errors.js");
@@ -173,6 +175,24 @@ const updateClassController = asyncHandler(async (req, res) => {
   return successResponse(res, { class: classData }, "Class updated successfully");
 });
 
+// Owner archives their own class
+const archiveClassController = asyncHandler(async (req, res) => {
+  const { classId } = req.params;
+
+  const classData = await archiveClassService(classId, req.auth.userId);
+
+  return successResponse(res, { class: classData }, "Class archived successfully");
+});
+
+// Owner restores their own archived class
+const restoreClassController = asyncHandler(async (req, res) => {
+  const { classId } = req.params;
+
+  const classData = await restoreClassService(classId, req.auth.userId);
+
+  return successResponse(res, { class: classData }, "Class restored successfully");
+});
+
 module.exports = {
   createClassController,
   joinClassController,
@@ -183,4 +203,6 @@ module.exports = {
   getMyClassesController,
   getClassByIdController,
   updateClassController,
+  archiveClassController,
+  restoreClassController,
 };

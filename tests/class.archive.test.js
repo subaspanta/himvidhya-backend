@@ -2,7 +2,6 @@ const request = require("supertest");
 const mongoose = require("mongoose");
 const { MongoMemoryServer } = require("mongodb-memory-server");
 const app = require("../server.js");
-const Class = require("../models/Class.model.js");
 const ClassMember = require("../models/ClassMember.model.js");
 
 let mongod;
@@ -29,14 +28,6 @@ async function registerAndLogin(overrides) {
   return agent;
 }
 
-// No archive endpoint exists yet (Implementation.md Phase 1 item 11, not
-// built on this branch), so tests reach the archived state with a direct
-// write to the fixture, mirroring the rogue-JoinRequest precedent in
-// class.membership.test.js.
-async function archiveClass(classId) {
-  await Class.updateOne({ _id: classId }, { $set: { status: "archived" } });
-}
-
 describe("Archived class — reads stay open (C5, DR1)", () => {
   it("owner can still GET an archived class", async () => {
     const teacher = await registerAndLogin({
@@ -50,7 +41,8 @@ describe("Archived class — reads stay open (C5, DR1)", () => {
     expect(createRes.status).toBe(201);
     const classId = createRes.body.data.class._id;
 
-    await archiveClass(classId);
+    const archiveRes = await teacher.post(`/api/v1/classes/${classId}/archive`);
+    expect(archiveRes.status).toBe(200);
 
     const detailsRes = await teacher.get(`/api/v1/classes/${classId}`);
     expect(detailsRes.status).toBe(200);
@@ -79,7 +71,8 @@ describe("Archived class — reads stay open (C5, DR1)", () => {
     const requestId = joinRes.body.data.joinRequest._id;
     await teacher.patch(`/api/v1/classes/requests/${requestId}/approve`);
 
-    await archiveClass(classId);
+    const archiveRes = await teacher.post(`/api/v1/classes/${classId}/archive`);
+    expect(archiveRes.status).toBe(200);
 
     const detailsRes = await student.get(`/api/v1/classes/${classId}`);
     expect(detailsRes.status).toBe(200);
@@ -107,7 +100,8 @@ describe("Archived class — ordinary writes return 403 (C6, DR2, item 19)", () 
     const classId = createRes.body.data.class._id;
     const joinCode = createRes.body.data.class.joinCode;
 
-    await archiveClass(classId);
+    const archiveRes = await teacher.post(`/api/v1/classes/${classId}/archive`);
+    expect(archiveRes.status).toBe(200);
 
     const joinRes = await student
       .post("/api/v1/classes/join")
@@ -136,7 +130,8 @@ describe("Archived class — ordinary writes return 403 (C6, DR2, item 19)", () 
       .send({ code: joinCode });
     const requestId = joinRes.body.data.joinRequest._id;
 
-    await archiveClass(classId);
+    const archiveRes = await teacher.post(`/api/v1/classes/${classId}/archive`);
+    expect(archiveRes.status).toBe(200);
 
     const approveRes = await teacher.patch(
       `/api/v1/classes/requests/${requestId}/approve`,
@@ -168,7 +163,8 @@ describe("Archived class — ordinary writes return 403 (C6, DR2, item 19)", () 
       .send({ code: joinCode });
     const requestId = joinRes.body.data.joinRequest._id;
 
-    await archiveClass(classId);
+    const archiveRes = await teacher.post(`/api/v1/classes/${classId}/archive`);
+    expect(archiveRes.status).toBe(200);
 
     const rejectRes = await teacher.patch(
       `/api/v1/classes/requests/${requestId}/reject`,

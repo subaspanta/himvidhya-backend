@@ -11,6 +11,8 @@ const {
   getMyClassesController,
   getClassByIdController,
   updateClassController,
+  archiveClassController,
+  restoreClassController,
 } = require("../controllers/class.controller");
 
 const { authenticate, authorize } = require("../middleware/auth.middleware.js");
@@ -73,6 +75,20 @@ router.patch(
   authorize({ roles: ["teacher"] }),
   validate(updateClassSchema),
   updateClassController,
+);
+
+router.post(
+  "/:classId/archive",
+  authenticate,
+  authorize({ roles: ["teacher"] }),
+  archiveClassController,
+);
+
+router.post(
+  "/:classId/restore",
+  authenticate,
+  authorize({ roles: ["teacher"] }),
+  restoreClassController,
 );
 
 router.get("/:id", authenticate, getClassByIdController);
