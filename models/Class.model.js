@@ -42,7 +42,7 @@ const classSchema = new mongoose.Schema(
       minlength: [6, "Join code must be at least 6 characters"],
       maxlength: [10, "Join code cannot exceed 10 characters"],
     },
-    creator: {
+    owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -64,24 +64,10 @@ const classSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    maxStudents: {
-      type: Number,
-      default: 50,
-      min: [5, "Minimum 5 students per batch"],
-    },
-    // Removed attendanceRate since you removed the bar from UI
-    nextDeadline: {
-      type: Date,
-      default: null,
-    },
     status: {
       type: String,
       default: "active",
       enum: ["active", "archived"],
-    },
-    isVerified: {
-      type: Boolean,
-      default: false, // Admin can verify batch
     },
   },
   {
@@ -91,20 +77,20 @@ const classSchema = new mongoose.Schema(
 
 // Indexes for performance
 classSchema.index({ joinCode: 1 }, { unique: true });
-classSchema.index({ creator: 1 });
+classSchema.index({ owner: 1 });
 classSchema.index({ "members.user": 1 }); // Fast lookup for user's classes
 classSchema.index({ createdAt: -1 });
 
-// Pre-save hook: Auto-add creator as teacher
+// Pre-save hook: Auto-add owner as teacher
 classSchema.pre("save", function (next) {
-  if (this.isNew && this.creator) {
-    // Only add if creator is not already in members
+  if (this.isNew && this.owner) {
+    // Only add if owner is not already in members
     const alreadyMember = this.members.some(
-      (m) => m.user.toString() === this.creator.toString(),
+      (m) => m.user.toString() === this.owner.toString(),
     );
     if (!alreadyMember) {
       this.members.unshift({
-        user: this.creator,
+        user: this.owner,
         role: "teacher",
         joinedAt: new Date(),
       });

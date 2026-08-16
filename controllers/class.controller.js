@@ -132,11 +132,8 @@ const getMyClassesController = asyncHandler(async (req, res) => {
       subject: cls.subject,
       code: cls.joinCode,
       studentCount,
-      maxStudents: cls.maxStudents,
       lastActivity,
       unreadMessages: 0,
-      attendanceRate: cls.attendanceRate,
-      nextDeadline: cls.nextDeadline,
       status: cls.status || "active",
     };
   });
