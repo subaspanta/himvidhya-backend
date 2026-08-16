@@ -4,7 +4,6 @@ const JoinRequest = require("../models/JoinRequest.model.js");
 const {
   ConflictError,
   NotFoundError,
-  ForbiddenError,
   BadRequestError,
   AuthenticationError,
 } = require("../utils/error/errors.js");
@@ -282,10 +281,9 @@ const getClassByIdService = async (classId, userId) => {
     throw new NotFoundError("Class not found");
   }
 
-  // Block access to archived classes
-  if (classDoc.status === "archived") {
-    throw new ForbiddenError("This class has been archived");
-  }
+  // Archived classes stay readable for existing active members and the
+  // owner (C5/I6) — archive blocks writes only. See assertClassWritable in
+  // the guards for the write-side enforcement.
 
   // Security: owner or active member only (owner is never a ClassMember — C2)
   await assertActiveMember(classDoc, userId, {
