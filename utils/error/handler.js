@@ -17,7 +17,9 @@ const fallbackLog = (err) => {
       path.join(__dirname, "../../logs/fatal.log"),
       `${new Date().toISOString()} | ${err.message}\n${err.stack}\n\n`,
     );
-  } catch {}
+  } catch {
+    // Best-effort fallback log; nothing left to do if this write fails too.
+  }
 };
 
 /* ---------------- EXPRESS ERROR MIDDLEWARE ---------------- */
