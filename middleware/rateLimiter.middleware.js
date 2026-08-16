@@ -1,8 +1,15 @@
 const rateLimit = require("express-rate-limit");
 
+// The integration suite drives real HTTP requests through /auth/register
+// across many test files in one Jest process (--runInBand); without this,
+// the shared per-process counter crosses these limits well before the
+// suite finishes and produces unrelated 429s.
+const skipInTest = () => process.env.NODE_ENV === "test";
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 50, // 50 requests per windowMs (more reasonable for development)
+  skip: skipInTest,
   message: "Too many authentication attempts, please try again later",
   standardHeaders: true,
   legacyHeaders: false,
@@ -31,5 +38,6 @@ const apiLimiter = rateLimit({
 const refreshLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 30, // more lenient than authLimiter
+  skip: skipInTest,
 });
 module.exports = { authLimiter, apiLimiter, refreshLimiter };
