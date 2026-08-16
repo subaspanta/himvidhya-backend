@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Class = require("../models/Class.model.js");
 const ClassMember = require("../models/ClassMember.model.js");
 const JoinRequest = require("../models/JoinRequest.model.js");
@@ -6,8 +7,10 @@ const {
   NotFoundError,
   BadRequestError,
   AuthenticationError,
+  ForbiddenError,
 } = require("../utils/error/errors.js");
 const {
+  loadClassOrThrow,
   assertClassOwner,
   assertActiveMember,
   assertClassWritable,
@@ -302,6 +305,30 @@ const getClassByIdService = async (classId, userId) => {
     message: "You are not a member of this class",
   });
 
+  // The roster itself lives at GET /classes/:classId/members (item 13) —
+  // this response carries only the count, not the full member list.
+  const membersCount = await ClassMember.countDocuments({
+    classId: classDoc._id,
+    status: "active",
+  });
+
+  return {
+    ...classDoc,
+    membersCount,
+  };
+};
+
+// Roster for a class — active ClassMember rows only (Implementation.md
+// item 13). The owner is never included; per C2 the owner is not a
+// ClassMember, and callers already have the owner from Class.owner /
+// getClassByIdService.
+const getClassMembersService = async (classId, userId) => {
+  const classDoc = await loadClassOrThrow(classId);
+
+  await assertActiveMember(classDoc, userId, {
+    message: "You are not a member of this class",
+  });
+
   const memberRows = await ClassMember.find({
     classId: classDoc._id,
     status: "active",
@@ -316,10 +343,131 @@ const getClassByIdService = async (classId, userId) => {
   }));
 
   return {
-    ...classDoc,
     members,
     membersCount: members.length,
   };
+};
+
+// Teacher edits their own class's metadata (Implementation.md item 10).
+// Cover image is deliberately excluded — the field does not exist on the
+// model yet, and the presigned-upload flow it needs lands with Materials.
+const updateClassService = async (classId, userId, updates) => {
+  const classDoc = await loadClassOrThrow(classId);
+
+  assertClassOwner(classDoc, userId);
+  assertClassWritable(classDoc);
+
+  Object.assign(classDoc, updates);
+  await classDoc.save();
+
+  return classDoc;
+};
+
+// Owner archives their own class (Implementation.md item 11). Deliberately
+// does not call assertClassWritable — that guard exists to block ordinary
+// writes on an already-archived class, not to express "must currently be
+// active". Archiving an already-archived class is a state conflict, not an
+// authorization failure, so it follows the existing ConflictError idiom
+// used for "already resolved" join requests rather than overloading the
+// writable guard's 403 semantics.
+const archiveClassService = async (classId, userId) => {
+  const classDoc = await loadClassOrThrow(classId);
+
+  assertClassOwner(classDoc, userId);
+
+  if (classDoc.status === "archived") {
+    throw new ConflictError("Class is already archived");
+  }
+
+  classDoc.status = "archived";
+  await classDoc.save();
+
+  return classDoc;
+};
+
+// Owner restores their own archived class (Implementation.md item 11).
+// Same reasoning as archiveClassService in reverse: assertClassWritable
+// would incorrectly 403 the one case restore exists to handle (the class
+// is archived), so this checks the inverse state directly instead.
+const restoreClassService = async (classId, userId) => {
+  const classDoc = await loadClassOrThrow(classId);
+
+  assertClassOwner(classDoc, userId);
+
+  if (classDoc.status === "active") {
+    throw new ConflictError("Class is already active");
+  }
+
+  classDoc.status = "active";
+  await classDoc.save();
+
+  return classDoc;
+};
+
+// Owner regenerates their class's join code (Implementation.md item 12).
+// The old code stops resolving to any class immediately; existing
+// ClassMember rows are untouched (PRD § 7.3).
+const regenerateJoinCodeService = async (classId, userId) => {
+  const classDoc = await loadClassOrThrow(classId);
+
+  assertClassOwner(classDoc, userId);
+  assertClassWritable(classDoc);
+
+  classDoc.joinCode = await Class.generateUniqueCode();
+  await classDoc.save();
+
+  return classDoc;
+};
+
+// Student leaves a class they are an active member of (Implementation.md
+// item 14). No assertClassWritable — I6 and PRD § 7.3 don't list leaving
+// among the writes an archived class blocks, so this works identically
+// whether the class is active or archived.
+const leaveClassService = async (classId, userId) => {
+  const classDoc = await loadClassOrThrow(classId);
+
+  const { isOwner, membership } = await assertActiveMember(classDoc, userId);
+
+  if (isOwner) {
+    throw new ForbiddenError("The class owner cannot leave their own class");
+  }
+
+  membership.status = "left";
+  await membership.save();
+
+  return membership;
+};
+
+// Owner removes a student from their class (Implementation.md item 15).
+// No assertClassWritable — same I6/PRD § 7.3 reasoning as leaveClassService.
+const removeClassMemberService = async (classId, ownerId, targetUserId) => {
+  const classDoc = await loadClassOrThrow(classId);
+
+  assertClassOwner(classDoc, ownerId);
+
+  // A malformed :userId would otherwise reach ClassMember.findOne as a raw
+  // Mongoose CastError (a 500). loadClassOrThrow makes this same check for
+  // :classId; there is no equivalent guard for a second id in the path, so
+  // it is repeated here rather than reused from another service, since it
+  // is one line and no other id parameter exists yet.
+  if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+    throw new NotFoundError("Class member not found");
+  }
+
+  const membership = await ClassMember.findOne({
+    classId: classDoc._id,
+    userId: targetUserId,
+    status: "active",
+  });
+
+  if (!membership) {
+    throw new NotFoundError("Class member not found");
+  }
+
+  membership.status = "removed";
+  await membership.save();
+
+  return membership;
 };
 
 module.exports = {
@@ -331,4 +479,11 @@ module.exports = {
   getTeacherJoinRequestsCountService,
   getMyClassesService,
   getClassByIdService,
+  updateClassService,
+  archiveClassService,
+  restoreClassService,
+  regenerateJoinCodeService,
+  getClassMembersService,
+  leaveClassService,
+  removeClassMemberService,
 };

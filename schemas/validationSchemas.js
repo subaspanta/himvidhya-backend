@@ -73,6 +73,34 @@ const joinClassSchema = z.object({
     .trim(),
 });
 
+// Matches Class.model.js's own field constraints. All fields optional —
+// a PATCH may touch any subset — but at least one must be present, or
+// there is nothing to update.
+const updateClassSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(1, "Class name cannot be empty")
+      .max(100, "Class name cannot exceed 100 characters")
+      .optional(),
+    description: z
+      .string()
+      .trim()
+      .max(500, "Description cannot exceed 500 characters")
+      .optional(),
+    subject: z
+      .string()
+      .trim()
+      .max(100, "Subject cannot exceed 100 characters")
+      .optional(),
+    college: z.string().trim().optional(),
+    semester: z.string().trim().optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided",
+  });
+
 module.exports = {
   registerSchema,
   loginSchema,
@@ -82,4 +110,5 @@ module.exports = {
   emailSchema,
   passwordSchema,
   joinClassSchema,
+  updateClassSchema,
 };

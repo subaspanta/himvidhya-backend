@@ -30,14 +30,14 @@ async function registerAndLogin(overrides) {
 }
 
 describe("ClassMember-backed membership", () => {
-  it("owner sees their own class in /class/my with no ClassMember row (C2)", async () => {
+  it("owner sees their own class in GET /classes with no ClassMember row (C2)", async () => {
     const teacher = await registerAndLogin({
       email: "owner-c2@example.com",
       role: "teacher",
     });
 
     const createRes = await teacher
-      .post("/api/v1/class")
+      .post("/api/v1/classes")
       .send({ name: "Physics I", subject: "Physics" });
     expect(createRes.status).toBe(201);
     const classId = createRes.body.data.class._id;
@@ -45,13 +45,13 @@ describe("ClassMember-backed membership", () => {
     const memberRowCount = await ClassMember.countDocuments({ classId });
     expect(memberRowCount).toBe(0);
 
-    const listRes = await teacher.get("/api/v1/class/my");
+    const listRes = await teacher.get("/api/v1/classes");
     expect(listRes.status).toBe(200);
     const ids = listRes.body.data.classes.map((c) => c.id);
     expect(ids).toContain(classId);
   });
 
-  it("join → approve creates an active ClassMember and surfaces in roster and /class/my", async () => {
+  it("join → approve creates an active ClassMember and surfaces in roster and GET /classes", async () => {
     const teacher = await registerAndLogin({
       email: "owner-join@example.com",
       role: "teacher",
@@ -62,17 +62,17 @@ describe("ClassMember-backed membership", () => {
     });
 
     const createRes = await teacher
-      .post("/api/v1/class")
+      .post("/api/v1/classes")
       .send({ name: "Chemistry I", subject: "Chemistry" });
     const classId = createRes.body.data.class._id;
     const joinCode = createRes.body.data.class.joinCode;
 
-    const joinRes = await student.post("/api/v1/class/join").send({ code: joinCode });
+    const joinRes = await student.post("/api/v1/classes/join").send({ code: joinCode });
     expect(joinRes.status).toBe(201);
     const requestId = joinRes.body.data.joinRequest._id;
 
     const approveRes = await teacher.patch(
-      `/api/v1/class/requests/${requestId}/approve`,
+      `/api/v1/classes/requests/${requestId}/approve`,
     );
     expect(approveRes.status).toBe(200);
 
@@ -80,14 +80,19 @@ describe("ClassMember-backed membership", () => {
     expect(row).not.toBeNull();
     expect(row.status).toBe("active");
 
-    const studentClasses = await student.get("/api/v1/class/my");
+    const studentClasses = await student.get("/api/v1/classes");
     expect(studentClasses.status).toBe(200);
     expect(studentClasses.body.data.classes.map((c) => c.id)).toContain(classId);
 
-    const detailsRes = await student.get(`/api/v1/class/${classId}`);
+    const detailsRes = await student.get(`/api/v1/classes/${classId}`);
     expect(detailsRes.status).toBe(200);
-    const { members, membersCount } = detailsRes.body.data.class;
-    expect(membersCount).toBe(1);
+    expect(detailsRes.body.data.class.membersCount).toBe(1);
+
+    const rosterRes = await student.get(
+      `/api/v1/classes/${classId}/members`,
+    );
+    expect(rosterRes.status).toBe(200);
+    const { members } = rosterRes.body.data;
     expect(members).toHaveLength(1);
     expect(members[0]).not.toHaveProperty("role");
     expect(members[0].user.email).toBe("student-join@example.com");
@@ -104,20 +109,20 @@ describe("ClassMember-backed membership", () => {
     });
 
     const createRes = await teacher
-      .post("/api/v1/class")
+      .post("/api/v1/classes")
       .send({ name: "Biology I", subject: "Biology" });
     const joinCode = createRes.body.data.class.joinCode;
 
-    const firstJoin = await student.post("/api/v1/class/join").send({ code: joinCode });
+    const firstJoin = await student.post("/api/v1/classes/join").send({ code: joinCode });
     const firstRequestId = firstJoin.body.data.joinRequest._id;
     const approveRes = await teacher.patch(
-      `/api/v1/class/requests/${firstRequestId}/approve`,
+      `/api/v1/classes/requests/${firstRequestId}/approve`,
     );
     expect(approveRes.status).toBe(200);
 
     // Already an active member — re-joining is rejected before a second
     // pending request can even be created.
-    const secondJoin = await student.post("/api/v1/class/join").send({ code: joinCode });
+    const secondJoin = await student.post("/api/v1/classes/join").send({ code: joinCode });
     expect(secondJoin.status).toBe(409);
   });
 
@@ -132,7 +137,7 @@ describe("ClassMember-backed membership", () => {
     });
 
     const createRes = await teacher
-      .post("/api/v1/class")
+      .post("/api/v1/classes")
       .send({ name: "Statistics I", subject: "Statistics" });
     const classId = createRes.body.data.class._id;
 
@@ -147,7 +152,7 @@ describe("ClassMember-backed membership", () => {
     });
 
     const approveRes = await teacher.patch(
-      `/api/v1/class/requests/${rogueRequest._id}/approve`,
+      `/api/v1/classes/requests/${rogueRequest._id}/approve`,
     );
     expect(approveRes.status).toBe(409);
 
@@ -169,18 +174,20 @@ describe("ClassMember-backed membership", () => {
     });
 
     const createRes = await teacher
-      .post("/api/v1/class")
+      .post("/api/v1/classes")
       .send({ name: "History I", subject: "History" });
     const classId = createRes.body.data.class._id;
     const joinCode = createRes.body.data.class.joinCode;
 
-    const joinRes = await student.post("/api/v1/class/join").send({ code: joinCode });
+    const joinRes = await student.post("/api/v1/classes/join").send({ code: joinCode });
     const requestId = joinRes.body.data.joinRequest._id;
-    await teacher.patch(`/api/v1/class/requests/${requestId}/approve`);
+    await teacher.patch(`/api/v1/classes/requests/${requestId}/approve`);
 
-    const detailsRes = await teacher.get(`/api/v1/class/${classId}`);
-    expect(detailsRes.status).toBe(200);
-    const emails = detailsRes.body.data.class.members.map((m) => m.user.email);
+    const rosterRes = await teacher.get(
+      `/api/v1/classes/${classId}/members`,
+    );
+    expect(rosterRes.status).toBe(200);
+    const emails = rosterRes.body.data.members.map((m) => m.user.email);
     expect(emails).not.toContain("owner-roster@example.com");
     expect(emails).toContain("student-roster@example.com");
   });
@@ -196,18 +203,18 @@ describe("ClassMember-backed membership", () => {
     });
 
     const createRes = await teacher
-      .post("/api/v1/class")
+      .post("/api/v1/classes")
       .send({ name: "Geography I", subject: "Geography" });
     const classId = createRes.body.data.class._id;
 
-    const forbiddenRes = await outsider.get(`/api/v1/class/${classId}`);
+    const forbiddenRes = await outsider.get(`/api/v1/classes/${classId}`);
     expect(forbiddenRes.status).toBe(403);
     // Pinned so the guard rewrite in class.service.js can't silently change
     // the message the client renders (JoinClassForm passes it through raw).
     expect(forbiddenRes.body.message).toBe("You are not a member of this class");
 
     const missingId = new mongoose.Types.ObjectId().toString();
-    const notFoundRes = await teacher.get(`/api/v1/class/${missingId}`);
+    const notFoundRes = await teacher.get(`/api/v1/classes/${missingId}`);
     expect(notFoundRes.status).toBe(404);
   });
 
@@ -223,21 +230,21 @@ describe("ClassMember-backed membership", () => {
     });
 
     const createRes = await teacher
-      .post("/api/v1/class")
+      .post("/api/v1/classes")
       .send({ name: "Left Class", subject: "Art" });
     const classId = createRes.body.data.class._id;
     const joinCode = createRes.body.data.class.joinCode;
 
     const joinRes = await student
-      .post("/api/v1/class/join")
+      .post("/api/v1/classes/join")
       .send({ code: joinCode });
     const requestId = joinRes.body.data.joinRequest._id;
-    await teacher.patch(`/api/v1/class/requests/${requestId}/approve`);
+    await teacher.patch(`/api/v1/classes/requests/${requestId}/approve`);
 
     // No leave endpoint exists yet (Phase 1 item 14) — set the row directly.
     await ClassMember.updateOne({ classId }, { $set: { status: "left" } });
 
-    const detailsRes = await student.get(`/api/v1/class/${classId}`);
+    const detailsRes = await student.get(`/api/v1/classes/${classId}`);
     expect(detailsRes.status).toBe(403);
   });
 
@@ -252,21 +259,21 @@ describe("ClassMember-backed membership", () => {
     });
 
     const createRes = await teacher
-      .post("/api/v1/class")
+      .post("/api/v1/classes")
       .send({ name: "Removed Class", subject: "Music" });
     const classId = createRes.body.data.class._id;
     const joinCode = createRes.body.data.class.joinCode;
 
     const joinRes = await student
-      .post("/api/v1/class/join")
+      .post("/api/v1/classes/join")
       .send({ code: joinCode });
     const requestId = joinRes.body.data.joinRequest._id;
-    await teacher.patch(`/api/v1/class/requests/${requestId}/approve`);
+    await teacher.patch(`/api/v1/classes/requests/${requestId}/approve`);
 
     // No remove endpoint exists yet (Phase 1 item 15) — set the row directly.
     await ClassMember.updateOne({ classId }, { $set: { status: "removed" } });
 
-    const detailsRes = await student.get(`/api/v1/class/${classId}`);
+    const detailsRes = await student.get(`/api/v1/classes/${classId}`);
     expect(detailsRes.status).toBe(403);
   });
 
@@ -286,17 +293,17 @@ describe("ClassMember-backed membership", () => {
     });
 
     const createRes = await ownerTeacher
-      .post("/api/v1/class")
+      .post("/api/v1/classes")
       .send({ name: "Teacher A's Class", subject: "Physics" });
     const joinCode = createRes.body.data.class.joinCode;
 
     const joinRes = await student
-      .post("/api/v1/class/join")
+      .post("/api/v1/classes/join")
       .send({ code: joinCode });
     const requestId = joinRes.body.data.joinRequest._id;
 
     const approveRes = await otherTeacher.patch(
-      `/api/v1/class/requests/${requestId}/approve`,
+      `/api/v1/classes/requests/${requestId}/approve`,
     );
     expect(approveRes.status).toBe(403);
   });
@@ -316,17 +323,17 @@ describe("ClassMember-backed membership", () => {
     });
 
     const createRes = await ownerTeacher
-      .post("/api/v1/class")
+      .post("/api/v1/classes")
       .send({ name: "Teacher C's Class", subject: "Chemistry" });
     const joinCode = createRes.body.data.class.joinCode;
 
     const joinRes = await student
-      .post("/api/v1/class/join")
+      .post("/api/v1/classes/join")
       .send({ code: joinCode });
     const requestId = joinRes.body.data.joinRequest._id;
 
     const rejectRes = await otherTeacher.patch(
-      `/api/v1/class/requests/${requestId}/reject`,
+      `/api/v1/classes/requests/${requestId}/reject`,
     );
     expect(rejectRes.status).toBe(403);
   });

@@ -66,7 +66,7 @@ app.get(`${apiV1Path}/health`, (_req, res) => {
   res.status(code).json(payload);
 });
 app.use(`${apiV1Path}/auth`, authRoutes);
-app.use(`${apiV1Path}/class`, classRoutes);
+app.use(`${apiV1Path}/classes`, classRoutes);
 app.use(`${apiV1Path}/users`, userRoutes);
 
 // 404 handler

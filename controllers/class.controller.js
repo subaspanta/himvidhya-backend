@@ -7,6 +7,13 @@ const {
   getTeacherJoinRequestsCountService,
   getMyClassesService,
   getClassByIdService,
+  updateClassService,
+  archiveClassService,
+  restoreClassService,
+  regenerateJoinCodeService,
+  getClassMembersService,
+  leaveClassService,
+  removeClassMemberService,
 } = require("../services/class.service.js");
 
 const { BadRequestError } = require("../utils/error/errors.js");
@@ -159,6 +166,81 @@ const getClassByIdController = asyncHandler(async (req, res) => {
   );
 });
 
+// Teacher edits their own class's metadata
+const updateClassController = asyncHandler(async (req, res) => {
+  const { classId } = req.params;
+
+  const classData = await updateClassService(
+    classId,
+    req.auth.userId,
+    req.body,
+  );
+
+  return successResponse(res, { class: classData }, "Class updated successfully");
+});
+
+// Owner archives their own class
+const archiveClassController = asyncHandler(async (req, res) => {
+  const { classId } = req.params;
+
+  const classData = await archiveClassService(classId, req.auth.userId);
+
+  return successResponse(res, { class: classData }, "Class archived successfully");
+});
+
+// Owner restores their own archived class
+const restoreClassController = asyncHandler(async (req, res) => {
+  const { classId } = req.params;
+
+  const classData = await restoreClassService(classId, req.auth.userId);
+
+  return successResponse(res, { class: classData }, "Class restored successfully");
+});
+
+// Owner regenerates their class's join code
+const regenerateJoinCodeController = asyncHandler(async (req, res) => {
+  const { classId } = req.params;
+
+  const classData = await regenerateJoinCodeService(classId, req.auth.userId);
+
+  return successResponse(
+    res,
+    { class: classData },
+    "Join code regenerated successfully",
+  );
+});
+
+// Roster for a class — active members only
+const getClassMembersController = asyncHandler(async (req, res) => {
+  const { classId } = req.params;
+
+  const result = await getClassMembersService(classId, req.auth.userId);
+
+  return successResponse(res, result, "Class members retrieved successfully");
+});
+
+// Student leaves a class they are an active member of
+const leaveClassController = asyncHandler(async (req, res) => {
+  const { classId } = req.params;
+
+  const membership = await leaveClassService(classId, req.auth.userId);
+
+  return successResponse(res, { membership }, "Left class successfully");
+});
+
+// Owner removes a student from their class
+const removeClassMemberController = asyncHandler(async (req, res) => {
+  const { classId, userId } = req.params;
+
+  const membership = await removeClassMemberService(
+    classId,
+    req.auth.userId,
+    userId,
+  );
+
+  return successResponse(res, { membership }, "Member removed successfully");
+});
+
 module.exports = {
   createClassController,
   joinClassController,
@@ -168,4 +250,11 @@ module.exports = {
   getTeacherJoinRequestsCountController,
   getMyClassesController,
   getClassByIdController,
+  updateClassController,
+  archiveClassController,
+  restoreClassController,
+  regenerateJoinCodeController,
+  getClassMembersController,
+  leaveClassController,
+  removeClassMemberController,
 };
