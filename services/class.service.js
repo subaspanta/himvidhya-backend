@@ -113,7 +113,7 @@ const approveJoinRequestService = async (requestId, teacherId) => {
   // explicitly so a legacy or otherwise out-of-band JoinRequest can't upsert
   // an owner row.
   if (classDoc.owner.toString() === joinRequest.user.toString()) {
-    throw new ConflictError("User is already a member of this class");
+    throw new ConflictError("Class owner cannot be added as a member");
   }
 
   // Check if somehow already an active member (edge case)
