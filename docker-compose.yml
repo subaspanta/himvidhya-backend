@@ -1,0 +1,109 @@
+name: himvidhya
+
+services:
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    ports:
+      - "27017:27017"
+    networks:
+      - himvidhya
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      # Browser-direct PUT (Phase 3) needs the client origin allowed here.
+      MINIO_API_CORS_ALLOW_ORIGIN: ${CLIENT_URL:-http://localhost:3000}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    networks:
+      - himvidhya
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # One-shot bucket bootstrap. Creates the bucket if missing and exits;
+  # does NOT grant public/anonymous access - materials stay private,
+  # reachable only through short-lived presigned URLs (Phase 3).
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin} &&
+      mc mb --ignore-existing local/${S3_BUCKET:-himvidhya-materials}
+      "
+    networks:
+      - himvidhya
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Container-internal hosts override whatever a bare .env has for local,
+      # non-Docker dev.
+      MONGODB_URI: mongodb://mongo:27017/himvidhya
+      S3_ENDPOINT: http://minio:9000
+      # Presigned URLs are consumed by the browser, not the server
+      # container, so they must be signed against a browser-reachable host.
+      S3_PUBLIC_ENDPOINT: http://localhost:9000
+    ports:
+      - "5000:5000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - himvidhya
+
+  # Optional - only starts with `docker compose --profile fullstack up`.
+  # Requires the client repo checked out as a sibling of this one; point
+  # CLIENT_PATH elsewhere if your checkout layout differs.
+  client:
+    build:
+      context: ${CLIENT_PATH:-../client}
+      dockerfile: Dockerfile
+      args:
+        # Resolved by the browser, not container-internally - baked in at
+        # build time, so it must be the host-reachable API address.
+        NEXT_PUBLIC_API_BASE_URL: http://localhost:5000/api/v1
+    profiles: ["fullstack"]
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - server
+    networks:
+      - himvidhya
+
+networks:
+  himvidhya:
+    driver: bridge
+
+volumes:
+  mongo-data:
+  minio-data:
