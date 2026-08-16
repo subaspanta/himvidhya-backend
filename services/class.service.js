@@ -303,6 +303,30 @@ const getClassByIdService = async (classId, userId) => {
     message: "You are not a member of this class",
   });
 
+  // The roster itself lives at GET /classes/:classId/members (item 13) —
+  // this response carries only the count, not the full member list.
+  const membersCount = await ClassMember.countDocuments({
+    classId: classDoc._id,
+    status: "active",
+  });
+
+  return {
+    ...classDoc,
+    membersCount,
+  };
+};
+
+// Roster for a class — active ClassMember rows only (Implementation.md
+// item 13). The owner is never included; per C2 the owner is not a
+// ClassMember, and callers already have the owner from Class.owner /
+// getClassByIdService.
+const getClassMembersService = async (classId, userId) => {
+  const classDoc = await loadClassOrThrow(classId);
+
+  await assertActiveMember(classDoc, userId, {
+    message: "You are not a member of this class",
+  });
+
   const memberRows = await ClassMember.find({
     classId: classDoc._id,
     status: "active",
@@ -317,7 +341,6 @@ const getClassByIdService = async (classId, userId) => {
   }));
 
   return {
-    ...classDoc,
     members,
     membersCount: members.length,
   };
@@ -407,4 +430,5 @@ module.exports = {
   archiveClassService,
   restoreClassService,
   regenerateJoinCodeService,
+  getClassMembersService,
 };

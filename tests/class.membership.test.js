@@ -86,8 +86,13 @@ describe("ClassMember-backed membership", () => {
 
     const detailsRes = await student.get(`/api/v1/classes/${classId}`);
     expect(detailsRes.status).toBe(200);
-    const { members, membersCount } = detailsRes.body.data.class;
-    expect(membersCount).toBe(1);
+    expect(detailsRes.body.data.class.membersCount).toBe(1);
+
+    const rosterRes = await student.get(
+      `/api/v1/classes/${classId}/members`,
+    );
+    expect(rosterRes.status).toBe(200);
+    const { members } = rosterRes.body.data;
     expect(members).toHaveLength(1);
     expect(members[0]).not.toHaveProperty("role");
     expect(members[0].user.email).toBe("student-join@example.com");
@@ -178,9 +183,11 @@ describe("ClassMember-backed membership", () => {
     const requestId = joinRes.body.data.joinRequest._id;
     await teacher.patch(`/api/v1/classes/requests/${requestId}/approve`);
 
-    const detailsRes = await teacher.get(`/api/v1/classes/${classId}`);
-    expect(detailsRes.status).toBe(200);
-    const emails = detailsRes.body.data.class.members.map((m) => m.user.email);
+    const rosterRes = await teacher.get(
+      `/api/v1/classes/${classId}/members`,
+    );
+    expect(rosterRes.status).toBe(200);
+    const emails = rosterRes.body.data.members.map((m) => m.user.email);
     expect(emails).not.toContain("owner-roster@example.com");
     expect(emails).toContain("student-roster@example.com");
   });

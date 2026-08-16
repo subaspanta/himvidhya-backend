@@ -77,8 +77,13 @@ describe("Archived class — reads stay open (C5, DR1)", () => {
     const detailsRes = await student.get(`/api/v1/classes/${classId}`);
     expect(detailsRes.status).toBe(200);
     expect(detailsRes.body.data.class.status).toBe("archived");
+
+    const rosterRes = await student.get(
+      `/api/v1/classes/${classId}/members`,
+    );
+    expect(rosterRes.status).toBe(200);
     expect(
-      detailsRes.body.data.class.members.map((m) => m.user.email),
+      rosterRes.body.data.members.map((m) => m.user.email),
     ).toContain("archive-member-read-student@example.com");
   });
 });

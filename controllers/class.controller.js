@@ -11,6 +11,7 @@ const {
   archiveClassService,
   restoreClassService,
   regenerateJoinCodeService,
+  getClassMembersService,
 } = require("../services/class.service.js");
 
 const { BadRequestError } = require("../utils/error/errors.js");
@@ -207,6 +208,15 @@ const regenerateJoinCodeController = asyncHandler(async (req, res) => {
   );
 });
 
+// Roster for a class — active members only
+const getClassMembersController = asyncHandler(async (req, res) => {
+  const { classId } = req.params;
+
+  const result = await getClassMembersService(classId, req.auth.userId);
+
+  return successResponse(res, result, "Class members retrieved successfully");
+});
+
 module.exports = {
   createClassController,
   joinClassController,
@@ -220,4 +230,5 @@ module.exports = {
   archiveClassController,
   restoreClassController,
   regenerateJoinCodeController,
+  getClassMembersController,
 };
