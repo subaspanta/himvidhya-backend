@@ -33,6 +33,10 @@ const registerSchema = z.object({
     .trim(),
   email: emailSchema,
   password: passwordSchema,
+  role: z.enum(["student", "teacher"], {
+    required_error: "Role is required",
+    invalid_type_error: "Role must be either student or teacher",
+  }),
 });
 
 const loginSchema = z.object({

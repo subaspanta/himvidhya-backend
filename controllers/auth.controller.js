@@ -24,12 +24,13 @@ const {
 
 const register = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     const { user } = await registerUserService({
       name,
       email,
       password,
+      role,
     });
 
     const accessToken = signAccessToken({ userId: user._id, role: user.role });

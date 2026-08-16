@@ -9,7 +9,7 @@ const memberSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ["teacher", "moderator", "student"], // Added moderator
+      enum: ["teacher", "student"],
       default: "student",
       required: true,
     },

@@ -22,7 +22,7 @@ function generateAccessToken(user) {
   );
 }
 
-const registerUserService = async ({ name, email, password }) => {
+const registerUserService = async ({ name, email, password, role }) => {
   const existingUser = await User.findOne({ email });
 
   if (existingUser) {
@@ -34,6 +34,7 @@ const registerUserService = async ({ name, email, password }) => {
     name,
     email,
     passwordHash: password,
+    role,
   });
 
   return { user };

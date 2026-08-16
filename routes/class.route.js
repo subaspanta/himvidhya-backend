@@ -20,7 +20,7 @@ const { joinClassSchema } = require("../schemas/validationSchemas.js");
 router.post(
   "/",
   authenticate,
-  authorize({ roles: ["teacher", "admin"] }),
+  authorize({ roles: ["teacher"] }),
   createClassController,
 );
 
@@ -38,28 +38,28 @@ router.post(
 router.get(
   "/requests/count",
   authenticate,
-  authorize({ roles: ["teacher", "admin"] }),
+  authorize({ roles: ["teacher"] }),
   getTeacherJoinRequestsCountController,
 );
 
 router.get(
   "/requests",
   authenticate,
-  authorize({ roles: ["teacher", "admin"] }),
+  authorize({ roles: ["teacher"] }),
   getTeacherJoinRequestsController,
 );
 
 router.patch(
   "/requests/:requestId/approve",
   authenticate,
-  authorize({ roles: ["teacher", "admin"] }),
+  authorize({ roles: ["teacher"] }),
   approveJoinRequestController,
 );
 
 router.patch(
   "/requests/:requestId/reject",
   authenticate,
-  authorize({ roles: ["teacher", "admin"] }),
+  authorize({ roles: ["teacher"] }),
   rejectJoinRequestController,
 );
 
