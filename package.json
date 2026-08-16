@@ -1,7 +1,7 @@
 {
   "name": "lms-backend",
   "version": "1.0.0",
-  "description": "An Educational LMS backend handling batches, students, teachers, and attendance",
+  "description": "An Educational LMS backend handling classes, join requests, students, and teachers",
   "type": "commonjs",
   "main": "server.js",
   "engines": {

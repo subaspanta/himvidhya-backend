@@ -1,13 +1,13 @@
 # HimVidhya LMS Backend
 
-An Educational LMS backend handling batches, students, teachers, and attendance. Built with Express, MongoDB, and modern Node.js practices.
+An Educational LMS backend handling classes, join requests, students, and teachers. Built with Express, MongoDB, and modern Node.js practices.
 
 ## Core Architecture
 
 - **Express.js** API using Node >= 24
 - **MongoDB + Mongoose** for data storage
 - **JWT Authentication** (access and refresh tokens)
-- **Role-Based Access Control (RBAC)** for admin, teacher, and student roles
+- **Role-Based Access Control (RBAC)** for teacher and student roles
 - **Zod Validation** for structured request body validation
 - **Centralized Error Handling** with Winston logging
 
@@ -27,4 +27,24 @@ JWT_REFRESH_SECRET=your_refresh_secret
 ACCESS_TOKEN_EXPIRES_IN=15m
 REFRESH_TOKEN_EXPIRES_IN=7d
 CLIENT_URL=http://localhost:3000
+```
+
+See `.env.example` for the full list, including object storage and Sentry variables consumed by later phases.
+
+## Running with Docker Compose
+
+```bash
+docker compose up
+```
+
+Starts MongoDB, MinIO and the server. Self-contained on a server-only clone - no client checkout required.
+
+```bash
+docker compose --profile fullstack up
+```
+
+Additionally builds and starts the client, expected to be checked out as a sibling directory (`../client`). If your client checkout lives elsewhere, point `CLIENT_PATH` at it:
+
+```bash
+CLIENT_PATH=../himvidhya-frontend docker compose --profile fullstack up
 ```
