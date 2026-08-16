@@ -45,14 +45,14 @@ describe("Archived class — reads stay open (C5, DR1)", () => {
     });
 
     const createRes = await teacher
-      .post("/api/v1/class")
+      .post("/api/v1/classes")
       .send({ name: "Archived Physics", subject: "Physics" });
     expect(createRes.status).toBe(201);
     const classId = createRes.body.data.class._id;
 
     await archiveClass(classId);
 
-    const detailsRes = await teacher.get(`/api/v1/class/${classId}`);
+    const detailsRes = await teacher.get(`/api/v1/classes/${classId}`);
     expect(detailsRes.status).toBe(200);
     expect(detailsRes.body.data.class.status).toBe("archived");
   });
@@ -68,20 +68,20 @@ describe("Archived class — reads stay open (C5, DR1)", () => {
     });
 
     const createRes = await teacher
-      .post("/api/v1/class")
+      .post("/api/v1/classes")
       .send({ name: "Archived Chemistry", subject: "Chemistry" });
     const classId = createRes.body.data.class._id;
     const joinCode = createRes.body.data.class.joinCode;
 
     const joinRes = await student
-      .post("/api/v1/class/join")
+      .post("/api/v1/classes/join")
       .send({ code: joinCode });
     const requestId = joinRes.body.data.joinRequest._id;
-    await teacher.patch(`/api/v1/class/requests/${requestId}/approve`);
+    await teacher.patch(`/api/v1/classes/requests/${requestId}/approve`);
 
     await archiveClass(classId);
 
-    const detailsRes = await student.get(`/api/v1/class/${classId}`);
+    const detailsRes = await student.get(`/api/v1/classes/${classId}`);
     expect(detailsRes.status).toBe(200);
     expect(detailsRes.body.data.class.status).toBe("archived");
     expect(
@@ -102,7 +102,7 @@ describe("Archived class — ordinary writes return 403 (C6, DR2, item 19)", () 
     });
 
     const createRes = await teacher
-      .post("/api/v1/class")
+      .post("/api/v1/classes")
       .send({ name: "Archived Biology", subject: "Biology" });
     const classId = createRes.body.data.class._id;
     const joinCode = createRes.body.data.class.joinCode;
@@ -110,7 +110,7 @@ describe("Archived class — ordinary writes return 403 (C6, DR2, item 19)", () 
     await archiveClass(classId);
 
     const joinRes = await student
-      .post("/api/v1/class/join")
+      .post("/api/v1/classes/join")
       .send({ code: joinCode });
     expect(joinRes.status).toBe(403);
   });
@@ -126,20 +126,20 @@ describe("Archived class — ordinary writes return 403 (C6, DR2, item 19)", () 
     });
 
     const createRes = await teacher
-      .post("/api/v1/class")
+      .post("/api/v1/classes")
       .send({ name: "Archived History", subject: "History" });
     const classId = createRes.body.data.class._id;
     const joinCode = createRes.body.data.class.joinCode;
 
     const joinRes = await student
-      .post("/api/v1/class/join")
+      .post("/api/v1/classes/join")
       .send({ code: joinCode });
     const requestId = joinRes.body.data.joinRequest._id;
 
     await archiveClass(classId);
 
     const approveRes = await teacher.patch(
-      `/api/v1/class/requests/${requestId}/approve`,
+      `/api/v1/classes/requests/${requestId}/approve`,
     );
     expect(approveRes.status).toBe(403);
 
@@ -158,20 +158,20 @@ describe("Archived class — ordinary writes return 403 (C6, DR2, item 19)", () 
     });
 
     const createRes = await teacher
-      .post("/api/v1/class")
+      .post("/api/v1/classes")
       .send({ name: "Archived Geography", subject: "Geography" });
     const classId = createRes.body.data.class._id;
     const joinCode = createRes.body.data.class.joinCode;
 
     const joinRes = await student
-      .post("/api/v1/class/join")
+      .post("/api/v1/classes/join")
       .send({ code: joinCode });
     const requestId = joinRes.body.data.joinRequest._id;
 
     await archiveClass(classId);
 
     const rejectRes = await teacher.patch(
-      `/api/v1/class/requests/${requestId}/reject`,
+      `/api/v1/classes/requests/${requestId}/reject`,
     );
     expect(rejectRes.status).toBe(200);
   });

@@ -16,7 +16,7 @@ afterAll(async () => {
   await mongod.stop();
 });
 
-describe("GET /api/v1/class/my", () => {
+describe("GET /api/v1/classes", () => {
   it("includes the populated owner on each class card", async () => {
     const agent = request.agent(app);
 
@@ -29,11 +29,11 @@ describe("GET /api/v1/class/my", () => {
     expect(registerRes.status).toBe(201);
 
     const createRes = await agent
-      .post("/api/v1/class")
+      .post("/api/v1/classes")
       .send({ name: "Algebra I", subject: "Math" });
     expect(createRes.status).toBe(201);
 
-    const listRes = await agent.get("/api/v1/class/my");
+    const listRes = await agent.get("/api/v1/classes");
     expect(listRes.status).toBe(200);
 
     const [classCard] = listRes.body.data.classes;

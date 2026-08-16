@@ -24,7 +24,7 @@ router.post(
   createClassController,
 );
 
-router.get("/my", authenticate, getMyClassesController);
+router.get("/", authenticate, getMyClassesController);
 
 // Join flow
 router.post(
