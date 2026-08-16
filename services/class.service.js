@@ -10,6 +10,7 @@ const {
 const {
   assertClassOwner,
   assertActiveMember,
+  assertClassWritable,
 } = require("./guards/class.guards.js");
 
 const createClassService = async ({ name, subject, description }, userId) => {
@@ -42,10 +43,9 @@ const joinClassService = async (code, userId) => {
     throw new NotFoundError("Class not found with this code");
   }
 
-  // Block joining an archived class
-  if (classDoc.status === "archived") {
-    throw new BadRequestError("Cannot join an archived class");
-  }
+  // Block joining an archived class (DR2: 403, not 400 — this is an
+  // authorization decision, not a malformed-request one)
+  assertClassWritable(classDoc);
 
   // Check if already an active member (owner is never a ClassMember — C2)
   const isOwner = classDoc.owner.toString() === userId.toString();
@@ -110,6 +110,11 @@ const approveJoinRequestService = async (requestId, teacherId) => {
     message: "Only the class teacher can approve requests",
   });
 
+  // Approval is a write; C6/I6/item 19 name it explicitly as an
+  // archived-class write category. Rejection is deliberately exempt — see
+  // rejectJoinRequestService below and the guards module header.
+  assertClassWritable(classDoc);
+
   // The owner must never become a ClassMember (C2). isMember() used to catch
   // this transitively because the pre-save hook auto-inserted the owner as a
   // member; now that the owner is never in ClassMember, this must be checked
@@ -173,6 +178,12 @@ const rejectJoinRequestService = async (requestId, teacherId) => {
   assertClassOwner(classDoc, teacherId, {
     message: "Only the class teacher can reject requests",
   });
+
+  // No assertClassWritable here, deliberately: API Contract § 6.4, PRD § 7.3
+  // and Implementation.md item 19 all scope the archived-class write
+  // restriction to approval only. A teacher may clear a pending queue
+  // (reject) on an archived class; they may not grow its membership
+  // (approve). Covered by class.archive.test.js.
 
   // Mark request as rejected and increment rejection count
   joinRequest.status = "rejected";

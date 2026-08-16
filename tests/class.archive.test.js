@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const { MongoMemoryServer } = require("mongodb-memory-server");
 const app = require("../server.js");
 const Class = require("../models/Class.model.js");
+const ClassMember = require("../models/ClassMember.model.js");
 
 let mongod;
 
@@ -86,5 +87,92 @@ describe("Archived class — reads stay open (C5, DR1)", () => {
     expect(
       detailsRes.body.data.class.members.map((m) => m.user.email),
     ).toContain("archive-member-read-student@example.com");
+  });
+});
+
+describe("Archived class — ordinary writes return 403 (C6, DR2, item 19)", () => {
+  it("joining an archived class returns 403, not 400", async () => {
+    const teacher = await registerAndLogin({
+      email: "archive-join-owner@example.com",
+      role: "teacher",
+    });
+    const student = await registerAndLogin({
+      email: "archive-join-student@example.com",
+      role: "student",
+    });
+
+    const createRes = await teacher
+      .post("/api/v1/class")
+      .send({ name: "Archived Biology", subject: "Biology" });
+    const classId = createRes.body.data.class._id;
+    const joinCode = createRes.body.data.class.joinCode;
+
+    await archiveClass(classId);
+
+    const joinRes = await student
+      .post("/api/v1/class/join")
+      .send({ code: joinCode });
+    expect(joinRes.status).toBe(403);
+  });
+
+  it("approving a join request on an archived class returns 403 and creates no membership", async () => {
+    const teacher = await registerAndLogin({
+      email: "archive-approve-owner@example.com",
+      role: "teacher",
+    });
+    const student = await registerAndLogin({
+      email: "archive-approve-student@example.com",
+      role: "student",
+    });
+
+    const createRes = await teacher
+      .post("/api/v1/class")
+      .send({ name: "Archived History", subject: "History" });
+    const classId = createRes.body.data.class._id;
+    const joinCode = createRes.body.data.class.joinCode;
+
+    const joinRes = await student
+      .post("/api/v1/class/join")
+      .send({ code: joinCode });
+    const requestId = joinRes.body.data.joinRequest._id;
+
+    await archiveClass(classId);
+
+    const approveRes = await teacher.patch(
+      `/api/v1/class/requests/${requestId}/approve`,
+    );
+    expect(approveRes.status).toBe(403);
+
+    const memberRowCount = await ClassMember.countDocuments({ classId });
+    expect(memberRowCount).toBe(0);
+  });
+
+  it("rejecting a join request on an archived class still succeeds (documented exemption)", async () => {
+    const teacher = await registerAndLogin({
+      email: "archive-reject-owner@example.com",
+      role: "teacher",
+    });
+    const student = await registerAndLogin({
+      email: "archive-reject-student@example.com",
+      role: "student",
+    });
+
+    const createRes = await teacher
+      .post("/api/v1/class")
+      .send({ name: "Archived Geography", subject: "Geography" });
+    const classId = createRes.body.data.class._id;
+    const joinCode = createRes.body.data.class.joinCode;
+
+    const joinRes = await student
+      .post("/api/v1/class/join")
+      .send({ code: joinCode });
+    const requestId = joinRes.body.data.joinRequest._id;
+
+    await archiveClass(classId);
+
+    const rejectRes = await teacher.patch(
+      `/api/v1/class/requests/${requestId}/reject`,
+    );
+    expect(rejectRes.status).toBe(200);
   });
 });
