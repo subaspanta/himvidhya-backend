@@ -1,26 +1,5 @@
 const mongoose = require("mongoose");
 
-const memberSchema = new mongoose.Schema(
-  {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    role: {
-      type: String,
-      enum: ["teacher", "student"],
-      default: "student",
-      required: true,
-    },
-    joinedAt: {
-      type: Date,
-      default: Date.now,
-    },
-  },
-  { _id: false },
-);
-
 const classSchema = new mongoose.Schema(
   {
     name: {
@@ -46,10 +25,6 @@ const classSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-    },
-    members: {
-      type: [memberSchema],
-      default: [],
     },
     description: {
       type: String,
@@ -78,40 +53,7 @@ const classSchema = new mongoose.Schema(
 // Indexes for performance
 classSchema.index({ joinCode: 1 }, { unique: true });
 classSchema.index({ owner: 1 });
-classSchema.index({ "members.user": 1 }); // Fast lookup for user's classes
 classSchema.index({ createdAt: -1 });
-
-// Pre-save hook: Auto-add owner as teacher
-classSchema.pre("save", function (next) {
-  if (this.isNew && this.owner) {
-    // Only add if owner is not already in members
-    const alreadyMember = this.members.some(
-      (m) => m.user.toString() === this.owner.toString(),
-    );
-    if (!alreadyMember) {
-      this.members.unshift({
-        user: this.owner,
-        role: "teacher",
-        joinedAt: new Date(),
-      });
-    }
-  }
-  next();
-});
-
-// Instance Methods
-classSchema.methods.isMember = function (userId) {
-  return this.members.some(
-    (member) => member.user.toString() === userId.toString(),
-  );
-};
-
-classSchema.methods.getUserRole = function (userId) {
-  const member = this.members.find(
-    (m) => m.user.toString() === userId.toString(),
-  );
-  return member ? member.role : null;
-};
 
 // Static Method: Generate unique join code
 classSchema.statics.generateUniqueCode = async function () {
