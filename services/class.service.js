@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Class = require("../models/Class.model.js");
 const ClassMember = require("../models/ClassMember.model.js");
 const JoinRequest = require("../models/JoinRequest.model.js");
@@ -437,6 +438,38 @@ const leaveClassService = async (classId, userId) => {
   return membership;
 };
 
+// Owner removes a student from their class (Implementation.md item 15).
+// No assertClassWritable — same I6/PRD § 7.3 reasoning as leaveClassService.
+const removeClassMemberService = async (classId, ownerId, targetUserId) => {
+  const classDoc = await loadClassOrThrow(classId);
+
+  assertClassOwner(classDoc, ownerId);
+
+  // A malformed :userId would otherwise reach ClassMember.findOne as a raw
+  // Mongoose CastError (a 500). loadClassOrThrow makes this same check for
+  // :classId; there is no equivalent guard for a second id in the path, so
+  // it is repeated here rather than reused from another service, since it
+  // is one line and no other id parameter exists yet.
+  if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+    throw new NotFoundError("Class member not found");
+  }
+
+  const membership = await ClassMember.findOne({
+    classId: classDoc._id,
+    userId: targetUserId,
+    status: "active",
+  });
+
+  if (!membership) {
+    throw new NotFoundError("Class member not found");
+  }
+
+  membership.status = "removed";
+  await membership.save();
+
+  return membership;
+};
+
 module.exports = {
   createClassService,
   joinClassService,
@@ -452,4 +485,5 @@ module.exports = {
   regenerateJoinCodeService,
   getClassMembersService,
   leaveClassService,
+  removeClassMemberService,
 };

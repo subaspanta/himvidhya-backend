@@ -13,6 +13,7 @@ const {
   regenerateJoinCodeService,
   getClassMembersService,
   leaveClassService,
+  removeClassMemberService,
 } = require("../services/class.service.js");
 
 const { BadRequestError } = require("../utils/error/errors.js");
@@ -227,6 +228,19 @@ const leaveClassController = asyncHandler(async (req, res) => {
   return successResponse(res, { membership }, "Left class successfully");
 });
 
+// Owner removes a student from their class
+const removeClassMemberController = asyncHandler(async (req, res) => {
+  const { classId, userId } = req.params;
+
+  const membership = await removeClassMemberService(
+    classId,
+    req.auth.userId,
+    userId,
+  );
+
+  return successResponse(res, { membership }, "Member removed successfully");
+});
+
 module.exports = {
   createClassController,
   joinClassController,
@@ -242,4 +256,5 @@ module.exports = {
   regenerateJoinCodeController,
   getClassMembersController,
   leaveClassController,
+  removeClassMemberController,
 };

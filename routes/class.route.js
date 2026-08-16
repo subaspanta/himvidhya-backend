@@ -16,6 +16,7 @@ const {
   regenerateJoinCodeController,
   getClassMembersController,
   leaveClassController,
+  removeClassMemberController,
 } = require("../controllers/class.controller");
 
 const { authenticate, authorize } = require("../middleware/auth.middleware.js");
@@ -103,13 +104,20 @@ router.post(
 
 router.get("/:classId/members", authenticate, getClassMembersController);
 
-// Registered before any future /:classId/members/:userId route (item 15) —
-// a param route would otherwise shadow this literal "me" segment.
+// Registered before /:classId/members/:userId below — a param route would
+// otherwise shadow this literal "me" segment.
 router.delete(
   "/:classId/members/me",
   authenticate,
   authorize({ roles: ["student"] }),
   leaveClassController,
+);
+
+router.delete(
+  "/:classId/members/:userId",
+  authenticate,
+  authorize({ roles: ["teacher"] }),
+  removeClassMemberController,
 );
 
 router.get("/:id", authenticate, getClassByIdController);
