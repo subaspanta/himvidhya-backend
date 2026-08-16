@@ -151,7 +151,7 @@ const logout = async (req, res, next) => {
   }
 };
 
-const forgetPassword = async (req, res, next) => {
+const forgetPassword = async (req, res) => {
   try {
     const { email } = req.body;
     const otp = await forgetPasswordService(email);
@@ -309,7 +309,7 @@ const refreshAccessToken = async (req, res) => {
     });
 
     return successResponse(res, null, "Access token refreshed");
-  } catch (error) {
+  } catch {
     return unauthorizedResponse(res, "Refresh token expired or invalid");
   }
 };

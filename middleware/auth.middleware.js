@@ -36,7 +36,7 @@ const authenticate = async (req, res, next) => {
     req.user = user;
 
     next();
-  } catch (error) {
+  } catch {
     return unauthorizedResponse(res, "Invalid or expired token");
   }
 };
