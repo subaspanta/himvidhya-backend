@@ -10,11 +10,15 @@ const {
   getTeacherJoinRequestsCountController,
   getMyClassesController,
   getClassByIdController,
+  updateClassController,
 } = require("../controllers/class.controller");
 
 const { authenticate, authorize } = require("../middleware/auth.middleware.js");
 const validate = require("../middleware/validateRequest.middleware.js");
-const { joinClassSchema } = require("../schemas/validationSchemas.js");
+const {
+  joinClassSchema,
+  updateClassSchema,
+} = require("../schemas/validationSchemas.js");
 
 // Class CRUD
 router.post(
@@ -61,6 +65,14 @@ router.patch(
   authenticate,
   authorize({ roles: ["teacher"] }),
   rejectJoinRequestController,
+);
+
+router.patch(
+  "/:classId",
+  authenticate,
+  authorize({ roles: ["teacher"] }),
+  validate(updateClassSchema),
+  updateClassController,
 );
 
 router.get("/:id", authenticate, getClassByIdController);

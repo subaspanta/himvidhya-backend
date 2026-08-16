@@ -7,6 +7,7 @@ const {
   getTeacherJoinRequestsCountService,
   getMyClassesService,
   getClassByIdService,
+  updateClassService,
 } = require("../services/class.service.js");
 
 const { BadRequestError } = require("../utils/error/errors.js");
@@ -159,6 +160,19 @@ const getClassByIdController = asyncHandler(async (req, res) => {
   );
 });
 
+// Teacher edits their own class's metadata
+const updateClassController = asyncHandler(async (req, res) => {
+  const { classId } = req.params;
+
+  const classData = await updateClassService(
+    classId,
+    req.auth.userId,
+    req.body,
+  );
+
+  return successResponse(res, { class: classData }, "Class updated successfully");
+});
+
 module.exports = {
   createClassController,
   joinClassController,
@@ -168,4 +182,5 @@ module.exports = {
   getTeacherJoinRequestsCountController,
   getMyClassesController,
   getClassByIdController,
+  updateClassController,
 };

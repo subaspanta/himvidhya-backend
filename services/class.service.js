@@ -8,6 +8,7 @@ const {
   AuthenticationError,
 } = require("../utils/error/errors.js");
 const {
+  loadClassOrThrow,
   assertClassOwner,
   assertActiveMember,
   assertClassWritable,
@@ -322,6 +323,21 @@ const getClassByIdService = async (classId, userId) => {
   };
 };
 
+// Teacher edits their own class's metadata (Implementation.md item 10).
+// Cover image is deliberately excluded — the field does not exist on the
+// model yet, and the presigned-upload flow it needs lands with Materials.
+const updateClassService = async (classId, userId, updates) => {
+  const classDoc = await loadClassOrThrow(classId);
+
+  assertClassOwner(classDoc, userId);
+  assertClassWritable(classDoc);
+
+  Object.assign(classDoc, updates);
+  await classDoc.save();
+
+  return classDoc;
+};
+
 module.exports = {
   createClassService,
   joinClassService,
@@ -331,4 +347,5 @@ module.exports = {
   getTeacherJoinRequestsCountService,
   getMyClassesService,
   getClassByIdService,
+  updateClassService,
 };
