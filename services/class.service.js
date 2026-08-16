@@ -20,7 +20,7 @@ const createClassService = async ({ name, subject, description }, userId) => {
     subject: subject || undefined,
     description: description?.trim() || undefined,
     joinCode,
-    creator: userId,
+    owner: userId,
   });
 
   return newClass;
@@ -94,8 +94,8 @@ const approveJoinRequestService = async (requestId, teacherId) => {
     throw new NotFoundError("Class not found");
   }
 
-  // Only the class creator (teacher) can approve
-  if (classDoc.creator.toString() !== teacherId.toString()) {
+  // Only the class owner (teacher) can approve
+  if (classDoc.owner.toString() !== teacherId.toString()) {
     throw new ForbiddenError("Only the class teacher can approve requests");
   }
 
@@ -142,8 +142,8 @@ const rejectJoinRequestService = async (requestId, teacherId) => {
     throw new NotFoundError("Class not found");
   }
 
-  // Only the class creator (teacher) can reject
-  if (classDoc.creator.toString() !== teacherId.toString()) {
+  // Only the class owner (teacher) can reject
+  if (classDoc.owner.toString() !== teacherId.toString()) {
     throw new ForbiddenError("Only the class teacher can reject requests");
   }
 
@@ -164,7 +164,7 @@ const getTeacherJoinRequestsService = async (teacherId) => {
   }
 
   // Find all classes this teacher owns
-  const teacherClasses = await Class.find({ creator: teacherId }).select(
+  const teacherClasses = await Class.find({ owner: teacherId }).select(
     "_id name",
   );
 
@@ -191,7 +191,7 @@ const getTeacherJoinRequestsCountService = async (teacherId) => {
     throw new AuthenticationError("Teacher ID required");
   }
 
-  const teacherClasses = await Class.find({ creator: teacherId }).select("_id");
+  const teacherClasses = await Class.find({ owner: teacherId }).select("_id");
   const classIds = teacherClasses.map((c) => c._id);
 
   const count = await JoinRequest.countDocuments({
@@ -211,9 +211,9 @@ const getMyClassesService = async (userId) => {
     "members.user": userId,
   })
     .select(
-      "name subject joinCode members creator createdAt updatedAt status maxStudents attendanceRate nextDeadline",
+      "name subject joinCode members owner createdAt updatedAt status",
     )
-    .populate("creator", "name email avatar")
+    .populate("owner", "name email avatar role")
     .sort({ createdAt: -1 })
     .lean();
 
@@ -226,7 +226,7 @@ const getClassByIdService = async (classId, userId) => {
   }
 
   const classDoc = await Class.findById(classId)
-    .populate("creator", "name email avatar role")
+    .populate("owner", "name email avatar role")
     .populate("members.user", "name email avatar role")
     .lean();
 

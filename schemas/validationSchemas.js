@@ -1,13 +1,11 @@
 const { z } = require("zod");
 const { PASSWORD_RULES } = require("../config/passwordRules.js");
 
-// Email validation schema
 const emailSchema = z
   .string()
   .email("Invalid email format")
   .max(100, "Email must not exceed 100 characters");
 
-// Password validation schema
 const passwordSchema = z
   .string()
   .min(
@@ -27,7 +25,6 @@ const passwordSchema = z
     PASSWORD_RULES.mustInclude.symbol.message,
   );
 
-// Registration schema
 const registerSchema = z.object({
   name: z
     .string()
@@ -36,20 +33,21 @@ const registerSchema = z.object({
     .trim(),
   email: emailSchema,
   password: passwordSchema,
+  role: z.enum(["student", "teacher"], {
+    required_error: "Role is required",
+    invalid_type_error: "Role must be either student or teacher",
+  }),
 });
 
-// Login schema
 const loginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, "Password is required"),
 });
 
-// Forget password schema
 const forgetPasswordSchema = z.object({
   email: emailSchema,
 });
 
-// Verify OTP schema
 const verifyOTPSchema = z.object({
   email: emailSchema,
   otp: z
@@ -58,7 +56,6 @@ const verifyOTPSchema = z.object({
     .regex(/^\d{6}$/, "OTP must contain only numbers"),
 });
 
-// Reset password schema
 const resetPasswordSchema = z.object({
   email: emailSchema,
   otp: z
@@ -66,6 +63,14 @@ const resetPasswordSchema = z.object({
     .length(6, "OTP must be 6 digits")
     .regex(/^\d{6}$/, "OTP must contain only numbers"),
   password: passwordSchema,
+});
+
+const joinClassSchema = z.object({
+  code: z
+    .string()
+    .min(6, "Code must be at least 6 characters")
+    .max(10, "Code cannot exceed 10 characters")
+    .trim(),
 });
 
 module.exports = {
@@ -76,4 +81,5 @@ module.exports = {
   resetPasswordSchema,
   emailSchema,
   passwordSchema,
+  joinClassSchema,
 };

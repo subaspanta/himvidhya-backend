@@ -24,12 +24,13 @@ const {
 
 const register = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     const { user } = await registerUserService({
       name,
       email,
       password,
+      role,
     });
 
     const accessToken = signAccessToken({ userId: user._id, role: user.role });
@@ -150,7 +151,7 @@ const logout = async (req, res, next) => {
   }
 };
 
-const forgetPassword = async (req, res, next) => {
+const forgetPassword = async (req, res) => {
   try {
     const { email } = req.body;
     const otp = await forgetPasswordService(email);
@@ -308,7 +309,7 @@ const refreshAccessToken = async (req, res) => {
     });
 
     return successResponse(res, null, "Access token refreshed");
-  } catch (error) {
+  } catch {
     return unauthorizedResponse(res, "Refresh token expired or invalid");
   }
 };

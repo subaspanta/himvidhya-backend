@@ -54,39 +54,6 @@ const errorResponse = (
 };
 
 /**
- * Paginated response
- * @param {Object} res - Express response object
- * @param {Array} data - Array of items
- * @param {number} page - Current page number
- * @param {number} limit - Items per page
- * @param {number} total - Total number of items
- * @param {string} message - Success message
- */
-const paginatedResponse = (
-  res,
-  data,
-  page,
-  limit,
-  total,
-  message = "Success",
-) => {
-  const totalPages = Math.ceil(total / limit);
-  const hasNextPage = page < totalPages;
-  const hasPrevPage = page > 1;
-
-  return successResponse(res, data, message, 200, {
-    pagination: {
-      currentPage: parseInt(page),
-      totalPages,
-      totalItems: total,
-      itemsPerPage: parseInt(limit),
-      hasNextPage,
-      hasPrevPage,
-    },
-  });
-};
-
-/**
  * Created response (201)
  * @param {Object} res - Express response object
  * @param {*} data - Created resource data
@@ -109,12 +76,12 @@ const noContentResponse = (res) => {
 };
 
 /**
- * Validation error response (400)
+ * Validation error response (422)
  * @param {Object} res - Express response object
  * @param {Array} errors - Array of validation errors
  */
 const validationErrorResponse = (res, errors) => {
-  return errorResponse(res, "Validation failed", 400, errors);
+  return errorResponse(res, "Validation failed", 422, errors);
 };
 
 /**
@@ -165,7 +132,6 @@ const serverErrorResponse = (res, message = "Internal server error") => {
 module.exports = {
   successResponse,
   errorResponse,
-  paginatedResponse,
   createdResponse,
   noContentResponse,
   validationErrorResponse,

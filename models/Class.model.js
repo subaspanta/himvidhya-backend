@@ -18,7 +18,7 @@ const memberSchema = new mongoose.Schema(
       default: Date.now,
     },
   },
-  { _id: false }, // No separate _id for embedded documents
+  { _id: false },
 );
 
 const classSchema = new mongoose.Schema(
@@ -27,7 +27,7 @@ const classSchema = new mongoose.Schema(
       type: String,
       required: [true, "Class name is required"],
       trim: true,
-      maxLength: [100, "Class name cann't exceed 100 characters"],
+      maxlength: [100, "Class name cannot exceed 100 characters"],
     },
     subject: {
       type: String,
@@ -42,7 +42,7 @@ const classSchema = new mongoose.Schema(
       minlength: [6, "Join code must be at least 6 characters"],
       maxlength: [10, "Join code cannot exceed 10 characters"],
     },
-    creator: {
+    owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -56,22 +56,18 @@ const classSchema = new mongoose.Schema(
       trim: true,
       maxlength: [500],
     },
-    maxStudents: {
-      type: Number,
-      default: 40,
+    college: {
+      type: String,
+      trim: true,
     },
-    attendanceRate: {
-      type: Number,
-      default: 0,
-    },
-    nextDeadline: {
-      type: Date,
-      default: null,
+    semester: {
+      type: String,
+      trim: true,
     },
     status: {
       type: String,
       default: "active",
-      enum: ["active", "archived", "pending"],
+      enum: ["active", "archived"],
     },
   },
   {
@@ -79,31 +75,37 @@ const classSchema = new mongoose.Schema(
   },
 );
 
+// Indexes for performance
 classSchema.index({ joinCode: 1 }, { unique: true });
-classSchema.index({ creator: 1 });
-classSchema.index({ "members.user": 1 });
+classSchema.index({ owner: 1 });
+classSchema.index({ "members.user": 1 }); // Fast lookup for user's classes
 classSchema.index({ createdAt: -1 });
 
-classSchema.pre("save", async function (next) {
-  if (this.isNew) {
-    // When creating a new class, automatically add creator as teacher
-    this.members.push({
-      user: this.creator,
-      role: "teacher",
-      joinedAt: new Date(),
-    });
+// Pre-save hook: Auto-add owner as teacher
+classSchema.pre("save", function (next) {
+  if (this.isNew && this.owner) {
+    // Only add if owner is not already in members
+    const alreadyMember = this.members.some(
+      (m) => m.user.toString() === this.owner.toString(),
+    );
+    if (!alreadyMember) {
+      this.members.unshift({
+        user: this.owner,
+        role: "teacher",
+        joinedAt: new Date(),
+      });
+    }
   }
   next();
 });
 
-// Instance method: Check if a user is member
+// Instance Methods
 classSchema.methods.isMember = function (userId) {
   return this.members.some(
     (member) => member.user.toString() === userId.toString(),
   );
 };
 
-// Instance method: Get user's role in this class
 classSchema.methods.getUserRole = function (userId) {
   const member = this.members.find(
     (m) => m.user.toString() === userId.toString(),
@@ -111,7 +113,7 @@ classSchema.methods.getUserRole = function (userId) {
   return member ? member.role : null;
 };
 
-// Static method: Generate unique join code
+// Static Method: Generate unique join code
 classSchema.statics.generateUniqueCode = async function () {
   let code;
   let isUnique = false;
@@ -119,8 +121,9 @@ classSchema.statics.generateUniqueCode = async function () {
   const maxAttempts = 10;
 
   while (!isUnique && attempts < maxAttempts) {
-    code = Math.random().toString(36).substring(2, 10).toUpperCase(); // 8 chars
+    code = Math.random().toString(36).substring(2, 10).toUpperCase();
     isUnique = !(await this.findOne({ joinCode: code }));
+    attempts++;
   }
 
   if (!isUnique) {

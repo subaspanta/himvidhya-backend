@@ -13,12 +13,14 @@ const {
 } = require("../controllers/class.controller");
 
 const { authenticate, authorize } = require("../middleware/auth.middleware.js");
+const validate = require("../middleware/validateRequest.middleware.js");
+const { joinClassSchema } = require("../schemas/validationSchemas.js");
 
 // Class CRUD
 router.post(
   "/",
   authenticate,
-  authorize({ roles: ["teacher", "admin"] }),
+  authorize({ roles: ["teacher"] }),
   createClassController,
 );
 
@@ -28,6 +30,7 @@ router.get("/my", authenticate, getMyClassesController);
 router.post(
   "/join",
   authenticate,
+  validate(joinClassSchema),
   authorize({ roles: ["student"] }),
   joinClassController,
 );
@@ -35,28 +38,28 @@ router.post(
 router.get(
   "/requests/count",
   authenticate,
-  authorize({ roles: ["teacher", "admin"] }),
+  authorize({ roles: ["teacher"] }),
   getTeacherJoinRequestsCountController,
 );
 
 router.get(
   "/requests",
   authenticate,
-  authorize({ roles: ["teacher", "admin"] }),
+  authorize({ roles: ["teacher"] }),
   getTeacherJoinRequestsController,
 );
 
 router.patch(
   "/requests/:requestId/approve",
   authenticate,
-  authorize({ roles: ["teacher", "admin"] }),
+  authorize({ roles: ["teacher"] }),
   approveJoinRequestController,
 );
 
 router.patch(
   "/requests/:requestId/reject",
   authenticate,
-  authorize({ roles: ["teacher", "admin"] }),
+  authorize({ roles: ["teacher"] }),
   rejectJoinRequestController,
 );
 
