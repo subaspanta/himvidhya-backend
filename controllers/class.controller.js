@@ -135,6 +135,7 @@ const getMyClassesController = asyncHandler(async (req, res) => {
       lastActivity,
       unreadMessages: 0,
       status: cls.status || "active",
+      owner: cls.owner,
     };
   });
 

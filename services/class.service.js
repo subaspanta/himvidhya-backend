@@ -213,7 +213,7 @@ const getMyClassesService = async (userId) => {
     .select(
       "name subject joinCode members owner createdAt updatedAt status",
     )
-    .populate("owner", "name email avatar")
+    .populate("owner", "name email avatar role")
     .sort({ createdAt: -1 })
     .lean();
 

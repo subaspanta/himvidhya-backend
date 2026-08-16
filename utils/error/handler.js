@@ -11,6 +11,28 @@ const {
 } = require("./errors");
 const { logger } = require("../../logger");
 
+const SENSITIVE_BODY_FIELDS = new Set([
+  "password",
+  "passwordhash",
+  "otp",
+  "token",
+  "accesstoken",
+  "refreshtoken",
+  "secret",
+]);
+
+// Logged on unexpected errors for debugging - strip credential values so
+// plaintext passwords/OTPs never land in logs, keep keys and other values.
+const redactBody = (body) => {
+  if (!body || typeof body !== "object") return body;
+  return Object.fromEntries(
+    Object.entries(body).map(([key, value]) => [
+      key,
+      SENSITIVE_BODY_FIELDS.has(key.toLowerCase()) ? "[REDACTED]" : value,
+    ]),
+  );
+};
+
 const fallbackLog = (err) => {
   try {
     fs.appendFileSync(
@@ -54,7 +76,7 @@ const HandleErrorWithLogger = (err, req, res, next) => {
       url: req.originalUrl,
       ip: req.ip,
       user: req.user?.id || "guest",
-      body: req.body,
+      body: redactBody(req.body),
       params: req.params,
       query: req.query,
     });
