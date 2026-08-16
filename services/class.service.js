@@ -11,6 +11,7 @@ const {
   assertClassOwner,
   assertActiveMember,
   assertClassWritable,
+  ownerIdOf,
 } = require("./guards/class.guards.js");
 
 const createClassService = async ({ name, subject, description }, userId) => {
@@ -48,7 +49,7 @@ const joinClassService = async (code, userId) => {
   assertClassWritable(classDoc);
 
   // Check if already an active member (owner is never a ClassMember — C2)
-  const isOwner = classDoc.owner.toString() === userId.toString();
+  const isOwner = ownerIdOf(classDoc) === userId.toString();
   const activeMembership = await ClassMember.findOne({
     classId: classDoc._id,
     userId,
@@ -120,7 +121,7 @@ const approveJoinRequestService = async (requestId, teacherId) => {
   // member; now that the owner is never in ClassMember, this must be checked
   // explicitly so a legacy or otherwise out-of-band JoinRequest can't upsert
   // an owner row.
-  if (classDoc.owner.toString() === joinRequest.user.toString()) {
+  if (ownerIdOf(classDoc) === joinRequest.user.toString()) {
     throw new ConflictError("Class owner cannot be added as a member");
   }
 

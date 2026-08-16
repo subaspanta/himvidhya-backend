@@ -279,11 +279,21 @@ describe("assertClassWritable", () => {
   // The guard is a plain status check and knows nothing about which
   // operations are exempt — archive/restore and join-request rejection are
   // exempt because their callers do not invoke it, not because it lets them
-  // through. Anything that reaches it and is archived gets a 403.
-  it("knows nothing about exempt operations", async () => {
-    const classDoc = await createClass({ status: "archived" });
+  // through. Proven by behavior, not by inspecting the function's arity:
+  // every status the schema allows other than "active" is blocked, with no
+  // carve-out for any of them, and the enum is read from the schema itself
+  // so a future status value (e.g. a hypothetical "suspended") is covered
+  // automatically rather than requiring this test to be remembered.
+  it.each(Class.schema.path("status").enumValues)(
+    "status %s is writable only when active",
+    (status) => {
+      const classDoc = { status };
 
-    expect(assertClassWritable.length).toBe(1);
-    expect(() => assertClassWritable(classDoc)).toThrow(ForbiddenError);
-  });
+      if (status === "active") {
+        expect(() => assertClassWritable(classDoc)).not.toThrow();
+      } else {
+        expect(() => assertClassWritable(classDoc)).toThrow(ForbiddenError);
+      }
+    },
+  );
 });

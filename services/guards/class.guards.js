@@ -19,6 +19,16 @@
  * guard — not because the guard special-cases them. Keeping the exemption
  * list out of the guard is what stops it accreting special cases as later
  * phases add endpoints.
+ *
+ * Signature deviation from Implementation.md:295-296 — deliberate, not
+ * spec drift. The doc specifies id-in signatures, e.g.
+ * assertActiveMember(classId, userId). Every current caller already holds
+ * a loaded class document, and one (getClassByIdService) holds it with
+ * owner populated. Taking an id here would force a redundant fetch on
+ * every guarded request and would silently discard that population.
+ * assertClassOwner/assertActiveMember/assertClassWritable take the loaded
+ * classDoc instead; loadClassOrThrow is exported separately for callers
+ * (e.g. a future PATCH /classes/:classId) that hold only an id.
  */
 
 const mongoose = require("mongoose");
@@ -33,6 +43,15 @@ const {
 // subdocument on getClassByIdService. Normalize once here so a caller that
 // forgets to populate can't silently compare the wrong shape and fail the
 // ownership check open or closed.
+//
+// Exported (not just used internally) because two business-specific
+// conflict checks in class.service.js — the join-conflict isOwner check in
+// joinClassService and the C2 owner-as-member regression guard in
+// approveJoinRequestService — compare classDoc.owner against a raw id too.
+// Those checks aren't authorization (see the module header) so they stay
+// inline, but they face the exact same shape-ambiguity risk this function
+// exists to close, so they reuse it rather than repeating a second,
+// unguarded .toString() comparison.
 function ownerIdOf(classDoc) {
   const owner = classDoc.owner;
   const id = owner && owner._id ? owner._id : owner;
@@ -123,4 +142,5 @@ module.exports = {
   assertClassOwner,
   assertActiveMember,
   assertClassWritable,
+  ownerIdOf,
 };
