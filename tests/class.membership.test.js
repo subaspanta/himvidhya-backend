@@ -202,6 +202,9 @@ describe("ClassMember-backed membership", () => {
 
     const forbiddenRes = await outsider.get(`/api/v1/class/${classId}`);
     expect(forbiddenRes.status).toBe(403);
+    // Pinned so the guard rewrite in class.service.js can't silently change
+    // the message the client renders (JoinClassForm passes it through raw).
+    expect(forbiddenRes.body.message).toBe("You are not a member of this class");
 
     const missingId = new mongoose.Types.ObjectId().toString();
     const notFoundRes = await teacher.get(`/api/v1/class/${missingId}`);

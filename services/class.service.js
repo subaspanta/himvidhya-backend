@@ -8,6 +8,10 @@ const {
   BadRequestError,
   AuthenticationError,
 } = require("../utils/error/errors.js");
+const {
+  assertClassOwner,
+  assertActiveMember,
+} = require("./guards/class.guards.js");
 
 const createClassService = async ({ name, subject, description }, userId) => {
   if (!userId) {
@@ -103,9 +107,9 @@ const approveJoinRequestService = async (requestId, teacherId) => {
   }
 
   // Only the class owner (teacher) can approve
-  if (classDoc.owner.toString() !== teacherId.toString()) {
-    throw new ForbiddenError("Only the class teacher can approve requests");
-  }
+  assertClassOwner(classDoc, teacherId, {
+    message: "Only the class teacher can approve requests",
+  });
 
   // The owner must never become a ClassMember (C2). isMember() used to catch
   // this transitively because the pre-save hook auto-inserted the owner as a
@@ -167,9 +171,9 @@ const rejectJoinRequestService = async (requestId, teacherId) => {
   }
 
   // Only the class owner (teacher) can reject
-  if (classDoc.owner.toString() !== teacherId.toString()) {
-    throw new ForbiddenError("Only the class teacher can reject requests");
-  }
+  assertClassOwner(classDoc, teacherId, {
+    message: "Only the class teacher can reject requests",
+  });
 
   // Mark request as rejected and increment rejection count
   joinRequest.status = "rejected";
@@ -284,18 +288,9 @@ const getClassByIdService = async (classId, userId) => {
   }
 
   // Security: owner or active member only (owner is never a ClassMember — C2)
-  const isOwner = classDoc.owner._id.toString() === userId.toString();
-  const activeMembership = isOwner
-    ? null
-    : await ClassMember.findOne({
-        classId: classDoc._id,
-        userId,
-        status: "active",
-      });
-
-  if (!isOwner && !activeMembership) {
-    throw new ForbiddenError("You are not a member of this class");
-  }
+  await assertActiveMember(classDoc, userId, {
+    message: "You are not a member of this class",
+  });
 
   const memberRows = await ClassMember.find({
     classId: classDoc._id,
