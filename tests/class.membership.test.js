@@ -202,9 +202,132 @@ describe("ClassMember-backed membership", () => {
 
     const forbiddenRes = await outsider.get(`/api/v1/class/${classId}`);
     expect(forbiddenRes.status).toBe(403);
+    // Pinned so the guard rewrite in class.service.js can't silently change
+    // the message the client renders (JoinClassForm passes it through raw).
+    expect(forbiddenRes.body.message).toBe("You are not a member of this class");
 
     const missingId = new mongoose.Types.ObjectId().toString();
     const notFoundRes = await teacher.get(`/api/v1/class/${missingId}`);
     expect(notFoundRes.status).toBe(404);
+  });
+
+  // I8: leave/remove preserve the ClassMember row (history), not the access.
+  it("a member who left is forbidden from reading the class", async () => {
+    const teacher = await registerAndLogin({
+      email: "owner-left@example.com",
+      role: "teacher",
+    });
+    const student = await registerAndLogin({
+      email: "student-left@example.com",
+      role: "student",
+    });
+
+    const createRes = await teacher
+      .post("/api/v1/class")
+      .send({ name: "Left Class", subject: "Art" });
+    const classId = createRes.body.data.class._id;
+    const joinCode = createRes.body.data.class.joinCode;
+
+    const joinRes = await student
+      .post("/api/v1/class/join")
+      .send({ code: joinCode });
+    const requestId = joinRes.body.data.joinRequest._id;
+    await teacher.patch(`/api/v1/class/requests/${requestId}/approve`);
+
+    // No leave endpoint exists yet (Phase 1 item 14) — set the row directly.
+    await ClassMember.updateOne({ classId }, { $set: { status: "left" } });
+
+    const detailsRes = await student.get(`/api/v1/class/${classId}`);
+    expect(detailsRes.status).toBe(403);
+  });
+
+  it("a member who was removed is forbidden from reading the class", async () => {
+    const teacher = await registerAndLogin({
+      email: "owner-removed@example.com",
+      role: "teacher",
+    });
+    const student = await registerAndLogin({
+      email: "student-removed@example.com",
+      role: "student",
+    });
+
+    const createRes = await teacher
+      .post("/api/v1/class")
+      .send({ name: "Removed Class", subject: "Music" });
+    const classId = createRes.body.data.class._id;
+    const joinCode = createRes.body.data.class.joinCode;
+
+    const joinRes = await student
+      .post("/api/v1/class/join")
+      .send({ code: joinCode });
+    const requestId = joinRes.body.data.joinRequest._id;
+    await teacher.patch(`/api/v1/class/requests/${requestId}/approve`);
+
+    // No remove endpoint exists yet (Phase 1 item 15) — set the row directly.
+    await ClassMember.updateOne({ classId }, { $set: { status: "removed" } });
+
+    const detailsRes = await student.get(`/api/v1/class/${classId}`);
+    expect(detailsRes.status).toBe(403);
+  });
+
+  // PRD § 7.2: a teacher cannot manage a class they do not own.
+  it("a teacher cannot approve a join request on a class they do not own", async () => {
+    const ownerTeacher = await registerAndLogin({
+      email: "owner-a@example.com",
+      role: "teacher",
+    });
+    const otherTeacher = await registerAndLogin({
+      email: "owner-b@example.com",
+      role: "teacher",
+    });
+    const student = await registerAndLogin({
+      email: "student-cross-teacher-approve@example.com",
+      role: "student",
+    });
+
+    const createRes = await ownerTeacher
+      .post("/api/v1/class")
+      .send({ name: "Teacher A's Class", subject: "Physics" });
+    const joinCode = createRes.body.data.class.joinCode;
+
+    const joinRes = await student
+      .post("/api/v1/class/join")
+      .send({ code: joinCode });
+    const requestId = joinRes.body.data.joinRequest._id;
+
+    const approveRes = await otherTeacher.patch(
+      `/api/v1/class/requests/${requestId}/approve`,
+    );
+    expect(approveRes.status).toBe(403);
+  });
+
+  it("a teacher cannot reject a join request on a class they do not own", async () => {
+    const ownerTeacher = await registerAndLogin({
+      email: "owner-c@example.com",
+      role: "teacher",
+    });
+    const otherTeacher = await registerAndLogin({
+      email: "owner-d@example.com",
+      role: "teacher",
+    });
+    const student = await registerAndLogin({
+      email: "student-cross-teacher-reject@example.com",
+      role: "student",
+    });
+
+    const createRes = await ownerTeacher
+      .post("/api/v1/class")
+      .send({ name: "Teacher C's Class", subject: "Chemistry" });
+    const joinCode = createRes.body.data.class.joinCode;
+
+    const joinRes = await student
+      .post("/api/v1/class/join")
+      .send({ code: joinCode });
+    const requestId = joinRes.body.data.joinRequest._id;
+
+    const rejectRes = await otherTeacher.patch(
+      `/api/v1/class/requests/${requestId}/reject`,
+    );
+    expect(rejectRes.status).toBe(403);
   });
 });

@@ -4,10 +4,15 @@ const JoinRequest = require("../models/JoinRequest.model.js");
 const {
   ConflictError,
   NotFoundError,
-  ForbiddenError,
   BadRequestError,
   AuthenticationError,
 } = require("../utils/error/errors.js");
+const {
+  assertClassOwner,
+  assertActiveMember,
+  assertClassWritable,
+  ownerIdOf,
+} = require("./guards/class.guards.js");
 
 const createClassService = async ({ name, subject, description }, userId) => {
   if (!userId) {
@@ -39,13 +44,12 @@ const joinClassService = async (code, userId) => {
     throw new NotFoundError("Class not found with this code");
   }
 
-  // Block joining an archived class
-  if (classDoc.status === "archived") {
-    throw new BadRequestError("Cannot join an archived class");
-  }
+  // Block joining an archived class (DR2: 403, not 400 — this is an
+  // authorization decision, not a malformed-request one)
+  assertClassWritable(classDoc);
 
   // Check if already an active member (owner is never a ClassMember — C2)
-  const isOwner = classDoc.owner.toString() === userId.toString();
+  const isOwner = ownerIdOf(classDoc) === userId.toString();
   const activeMembership = await ClassMember.findOne({
     classId: classDoc._id,
     userId,
@@ -103,16 +107,21 @@ const approveJoinRequestService = async (requestId, teacherId) => {
   }
 
   // Only the class owner (teacher) can approve
-  if (classDoc.owner.toString() !== teacherId.toString()) {
-    throw new ForbiddenError("Only the class teacher can approve requests");
-  }
+  assertClassOwner(classDoc, teacherId, {
+    message: "Only the class teacher can approve requests",
+  });
+
+  // Approval is a write; C6/I6/item 19 name it explicitly as an
+  // archived-class write category. Rejection is deliberately exempt — see
+  // rejectJoinRequestService below and the guards module header.
+  assertClassWritable(classDoc);
 
   // The owner must never become a ClassMember (C2). isMember() used to catch
   // this transitively because the pre-save hook auto-inserted the owner as a
   // member; now that the owner is never in ClassMember, this must be checked
   // explicitly so a legacy or otherwise out-of-band JoinRequest can't upsert
   // an owner row.
-  if (classDoc.owner.toString() === joinRequest.user.toString()) {
+  if (ownerIdOf(classDoc) === joinRequest.user.toString()) {
     throw new ConflictError("Class owner cannot be added as a member");
   }
 
@@ -167,9 +176,15 @@ const rejectJoinRequestService = async (requestId, teacherId) => {
   }
 
   // Only the class owner (teacher) can reject
-  if (classDoc.owner.toString() !== teacherId.toString()) {
-    throw new ForbiddenError("Only the class teacher can reject requests");
-  }
+  assertClassOwner(classDoc, teacherId, {
+    message: "Only the class teacher can reject requests",
+  });
+
+  // No assertClassWritable here, deliberately: API Contract § 6.4, PRD § 7.3
+  // and Implementation.md item 19 all scope the archived-class write
+  // restriction to approval only. A teacher may clear a pending queue
+  // (reject) on an archived class; they may not grow its membership
+  // (approve). Covered by class.archive.test.js.
 
   // Mark request as rejected and increment rejection count
   joinRequest.status = "rejected";
@@ -278,24 +293,14 @@ const getClassByIdService = async (classId, userId) => {
     throw new NotFoundError("Class not found");
   }
 
-  // Block access to archived classes
-  if (classDoc.status === "archived") {
-    throw new ForbiddenError("This class has been archived");
-  }
+  // Archived classes stay readable for existing active members and the
+  // owner (C5/I6) — archive blocks writes only. See assertClassWritable in
+  // the guards for the write-side enforcement.
 
   // Security: owner or active member only (owner is never a ClassMember — C2)
-  const isOwner = classDoc.owner._id.toString() === userId.toString();
-  const activeMembership = isOwner
-    ? null
-    : await ClassMember.findOne({
-        classId: classDoc._id,
-        userId,
-        status: "active",
-      });
-
-  if (!isOwner && !activeMembership) {
-    throw new ForbiddenError("You are not a member of this class");
-  }
+  await assertActiveMember(classDoc, userId, {
+    message: "You are not a member of this class",
+  });
 
   const memberRows = await ClassMember.find({
     classId: classDoc._id,
