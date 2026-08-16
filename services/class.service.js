@@ -6,6 +6,7 @@ const {
   NotFoundError,
   BadRequestError,
   AuthenticationError,
+  ForbiddenError,
 } = require("../utils/error/errors.js");
 const {
   loadClassOrThrow,
@@ -417,6 +418,25 @@ const regenerateJoinCodeService = async (classId, userId) => {
   return classDoc;
 };
 
+// Student leaves a class they are an active member of (Implementation.md
+// item 14). No assertClassWritable — I6 and PRD § 7.3 don't list leaving
+// among the writes an archived class blocks, so this works identically
+// whether the class is active or archived.
+const leaveClassService = async (classId, userId) => {
+  const classDoc = await loadClassOrThrow(classId);
+
+  const { isOwner, membership } = await assertActiveMember(classDoc, userId);
+
+  if (isOwner) {
+    throw new ForbiddenError("The class owner cannot leave their own class");
+  }
+
+  membership.status = "left";
+  await membership.save();
+
+  return membership;
+};
+
 module.exports = {
   createClassService,
   joinClassService,
@@ -431,4 +451,5 @@ module.exports = {
   restoreClassService,
   regenerateJoinCodeService,
   getClassMembersService,
+  leaveClassService,
 };
