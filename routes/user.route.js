@@ -1,29 +1,9 @@
 const express = require("express");
-const {
-  getUsers,
-  getUser,
-  updateUser,
-  searchUser,
-} = require("../controllers/user.controller.js");
+const { getCurrentUser } = require("../controllers/user.controller.js");
 const { authenticate } = require("../middleware/auth.middleware.js");
-const asyncHandler = require("../helpers/asyncHandler.js");
-const User = require("../models/User.model.js");
 
 const router = express.Router();
 
-router.get("/search", authenticate, searchUser);
-
-router.get("/", authenticate, getUsers);
-
-router.get(
-  "/profile",
-  authenticate,
-  asyncHandler(async (req, res) => {
-    const user = await User.findById(req.auth.userId).select("-passwordHash");
-    res.json(user);
-  }),
-);
-router.get("/:id", authenticate, getUser);
-router.put("/:id", authenticate, updateUser);
+router.get("/me", authenticate, getCurrentUser);
 
 module.exports = router;
