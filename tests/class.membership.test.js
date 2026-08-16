@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const { MongoMemoryServer } = require("mongodb-memory-server");
 const app = require("../server.js");
 const ClassMember = require("../models/ClassMember.model.js");
+const JoinRequest = require("../models/JoinRequest.model.js");
 
 let mongod;
 
@@ -118,6 +119,43 @@ describe("ClassMember-backed membership", () => {
     // pending request can even be created.
     const secondJoin = await student.post("/api/v1/class/join").send({ code: joinCode });
     expect(secondJoin.status).toBe(409);
+  });
+
+  it("owner cannot be converted into a ClassMember via join-request approval (C2)", async () => {
+    // joinClassService already blocks a teacher from requesting to join their
+    // own class, so this legacy/out-of-band shape can't arise through the
+    // normal HTTP join flow. Insert the JoinRequest directly to prove the
+    // service-level guard holds regardless of how such a document got there.
+    const teacher = await registerAndLogin({
+      email: "owner-selfjoin@example.com",
+      role: "teacher",
+    });
+
+    const createRes = await teacher
+      .post("/api/v1/class")
+      .send({ name: "Statistics I", subject: "Statistics" });
+    const classId = createRes.body.data.class._id;
+
+    const meRes = await teacher.get("/api/v1/users/me");
+    const ownerId = meRes.body.data.user._id;
+
+    const rogueRequest = await JoinRequest.create({
+      class: classId,
+      user: ownerId,
+      type: "request",
+      status: "pending",
+    });
+
+    const approveRes = await teacher.patch(
+      `/api/v1/class/requests/${rogueRequest._id}/approve`,
+    );
+    expect(approveRes.status).toBe(409);
+
+    const ownerMembershipRow = await ClassMember.findOne({
+      classId,
+      userId: ownerId,
+    });
+    expect(ownerMembershipRow).toBeNull();
   });
 
   it("roster excludes the owner", async () => {

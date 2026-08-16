@@ -107,6 +107,15 @@ const approveJoinRequestService = async (requestId, teacherId) => {
     throw new ForbiddenError("Only the class teacher can approve requests");
   }
 
+  // The owner must never become a ClassMember (C2). isMember() used to catch
+  // this transitively because the pre-save hook auto-inserted the owner as a
+  // member; now that the owner is never in ClassMember, this must be checked
+  // explicitly so a legacy or otherwise out-of-band JoinRequest can't upsert
+  // an owner row.
+  if (classDoc.owner.toString() === joinRequest.user.toString()) {
+    throw new ConflictError("User is already a member of this class");
+  }
+
   // Check if somehow already an active member (edge case)
   const existingActiveMembership = await ClassMember.findOne({
     classId: classDoc._id,
