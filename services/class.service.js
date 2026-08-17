@@ -259,7 +259,9 @@ const getMyClassesService = async (userId) => {
   const classes = await Class.find({
     $or: [{ owner: userId }, { _id: { $in: memberClassIds } }],
   })
-    .select("name subject joinCode owner createdAt updatedAt status")
+    .select(
+      "name subject description college semester joinCode owner createdAt updatedAt status",
+    )
     .populate("owner", "name email avatar role")
     .sort({ createdAt: -1 })
     .lean();
