@@ -126,28 +126,9 @@ const getTeacherJoinRequestsCountController = asyncHandler(async (req, res) => {
 const getMyClassesController = asyncHandler(async (req, res) => {
   const classes = await getMyClassesService(req.auth.userId);
 
-  const batches = (classes || []).map((cls) => {
-    const lastActivity = cls.updatedAt ? cls.updatedAt.toISOString() : null;
-
-    return {
-      id: cls._id,
-      name: cls.name,
-      subject: cls.subject,
-      description: cls.description,
-      college: cls.college,
-      semester: cls.semester,
-      code: cls.joinCode,
-      studentCount: cls.studentCount || 0,
-      lastActivity,
-      unreadMessages: 0,
-      status: cls.status || "active",
-      owner: cls.owner,
-    };
-  });
-
   return successResponse(
     res,
-    { classes: batches },
+    { classes },
     "Classes retrieved successfully",
   );
 });

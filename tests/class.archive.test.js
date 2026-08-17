@@ -39,7 +39,7 @@ describe("Archived class — reads stay open (C5, DR1)", () => {
       .post("/api/v1/classes")
       .send({ name: "Archived Physics", subject: "Physics" });
     expect(createRes.status).toBe(201);
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     const archiveRes = await teacher.post(`/api/v1/classes/${classId}/archive`);
     expect(archiveRes.status).toBe(200);
@@ -62,8 +62,8 @@ describe("Archived class — reads stay open (C5, DR1)", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Archived Chemistry", subject: "Chemistry" });
-    const classId = createRes.body.data.class._id;
-    const joinCode = createRes.body.data.class.joinCode;
+    const classId = createRes.body.data.class.id;
+    const joinCode = createRes.body.data.class.code;
 
     const joinRes = await student
       .post("/api/v1/classes/join")
@@ -102,8 +102,8 @@ describe("Archived class — ordinary writes return 403 (C6, DR2, item 19)", () 
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Archived Biology", subject: "Biology" });
-    const classId = createRes.body.data.class._id;
-    const joinCode = createRes.body.data.class.joinCode;
+    const classId = createRes.body.data.class.id;
+    const joinCode = createRes.body.data.class.code;
 
     const archiveRes = await teacher.post(`/api/v1/classes/${classId}/archive`);
     expect(archiveRes.status).toBe(200);
@@ -127,8 +127,8 @@ describe("Archived class — ordinary writes return 403 (C6, DR2, item 19)", () 
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Archived History", subject: "History" });
-    const classId = createRes.body.data.class._id;
-    const joinCode = createRes.body.data.class.joinCode;
+    const classId = createRes.body.data.class.id;
+    const joinCode = createRes.body.data.class.code;
 
     const joinRes = await student
       .post("/api/v1/classes/join")
@@ -160,8 +160,8 @@ describe("Archived class — ordinary writes return 403 (C6, DR2, item 19)", () 
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Archived Geography", subject: "Geography" });
-    const classId = createRes.body.data.class._id;
-    const joinCode = createRes.body.data.class.joinCode;
+    const classId = createRes.body.data.class.id;
+    const joinCode = createRes.body.data.class.code;
 
     const joinRes = await student
       .post("/api/v1/classes/join")

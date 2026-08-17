@@ -42,7 +42,7 @@ describe("POST /api/v1/classes/:classId/archive", () => {
     const createRes = await owner
       .post("/api/v1/classes")
       .send({ name: "History", subject: "History" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     const res = await otherTeacher.post(`/api/v1/classes/${classId}/archive`);
     expect(res.status).toBe(403);
@@ -57,7 +57,7 @@ describe("POST /api/v1/classes/:classId/archive", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Geography", subject: "Geography" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     const res = await teacher.post(`/api/v1/classes/${classId}/archive`);
     expect(res.status).toBe(200);
@@ -76,7 +76,7 @@ describe("POST /api/v1/classes/:classId/archive", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Art", subject: "Art" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     const firstRes = await teacher.post(`/api/v1/classes/${classId}/archive`);
     expect(firstRes.status).toBe(200);
@@ -108,7 +108,7 @@ describe("POST /api/v1/classes/:classId/archive", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Music", subject: "Music" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     await teacher.post(`/api/v1/classes/${classId}/archive`);
 
@@ -132,7 +132,7 @@ describe("POST /api/v1/classes/:classId/restore", () => {
     const createRes = await owner
       .post("/api/v1/classes")
       .send({ name: "Economics", subject: "Economics" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
     await owner.post(`/api/v1/classes/${classId}/archive`);
 
     const res = await otherTeacher.post(`/api/v1/classes/${classId}/restore`);
@@ -148,7 +148,7 @@ describe("POST /api/v1/classes/:classId/restore", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Statistics", subject: "Math" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
     await teacher.post(`/api/v1/classes/${classId}/archive`);
 
     const res = await teacher.post(`/api/v1/classes/${classId}/restore`);
@@ -168,7 +168,7 @@ describe("POST /api/v1/classes/:classId/restore", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Philosophy", subject: "Philosophy" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     const res = await teacher.post(`/api/v1/classes/${classId}/restore`);
     expect(res.status).toBe(409);

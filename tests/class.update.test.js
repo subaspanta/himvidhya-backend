@@ -56,7 +56,7 @@ describe("PATCH /api/v1/classes/:classId", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Algebra", subject: "Math" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     const res = await student
       .patch(`/api/v1/classes/${classId}`)
@@ -77,7 +77,7 @@ describe("PATCH /api/v1/classes/:classId", () => {
     const createRes = await owner
       .post("/api/v1/classes")
       .send({ name: "Biology", subject: "Science" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     const res = await otherTeacher
       .patch(`/api/v1/classes/${classId}`)
@@ -94,7 +94,7 @@ describe("PATCH /api/v1/classes/:classId", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Archived Chem", subject: "Chemistry" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     await archiveClass(classId);
 
@@ -113,7 +113,7 @@ describe("PATCH /api/v1/classes/:classId", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Physics", subject: "Science" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     const res = await teacher.patch(`/api/v1/classes/${classId}`).send({
       name: "Physics II",
@@ -165,7 +165,7 @@ describe("PATCH /api/v1/classes/:classId", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Geometry", subject: "Math" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     const res = await teacher
       .patch(`/api/v1/classes/${classId}`)
@@ -182,7 +182,7 @@ describe("PATCH /api/v1/classes/:classId", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Calculus", subject: "Math" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     const res = await teacher.patch(`/api/v1/classes/${classId}`).send({});
     expect(res.status).toBe(422);

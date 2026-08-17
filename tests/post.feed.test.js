@@ -36,8 +36,8 @@ async function createClassAndTeacher(email) {
   expect(createRes.status).toBe(201);
   return {
     teacher,
-    classId: createRes.body.data.class._id,
-    joinCode: createRes.body.data.class.joinCode,
+    classId: createRes.body.data.class.id,
+    joinCode: createRes.body.data.class.code,
   };
 }
 

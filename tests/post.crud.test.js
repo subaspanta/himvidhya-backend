@@ -34,7 +34,7 @@ async function createClassAndTeacher(email) {
     .post("/api/v1/classes")
     .send({ name: "CRUD Class", subject: "Physics" });
   expect(createRes.status).toBe(201);
-  return { teacher, classId: createRes.body.data.class._id, joinCode: createRes.body.data.class.joinCode };
+  return { teacher, classId: createRes.body.data.class.id, joinCode: createRes.body.data.class.code };
 }
 
 async function joinAndApprove(teacher, classId, joinCode, studentEmail) {

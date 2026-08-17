@@ -49,7 +49,7 @@ describe("GET /api/v1/classes/:classId/members", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Chemistry II", subject: "Chemistry" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     const res = await outsider.get(`/api/v1/classes/${classId}/members`);
     expect(res.status).toBe(403);
@@ -68,8 +68,8 @@ describe("GET /api/v1/classes/:classId/members", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Physics III", subject: "Physics" });
-    const classId = createRes.body.data.class._id;
-    const joinCode = createRes.body.data.class.joinCode;
+    const classId = createRes.body.data.class.id;
+    const joinCode = createRes.body.data.class.code;
 
     const joinRes = await student
       .post("/api/v1/classes/join")
@@ -95,7 +95,7 @@ describe("GET /api/v1/classes/:classId/members", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Zoology", subject: "Biology" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     const res = await teacher.get(`/api/v1/classes/${classId}/members`);
     expect(res.status).toBe(200);
@@ -116,8 +116,8 @@ describe("GET /api/v1/classes/:classId/members", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Botany", subject: "Biology" });
-    const classId = createRes.body.data.class._id;
-    const joinCode = createRes.body.data.class.joinCode;
+    const classId = createRes.body.data.class.id;
+    const joinCode = createRes.body.data.class.code;
 
     const joinRes = await student
       .post("/api/v1/classes/join")
@@ -152,7 +152,7 @@ describe("GET /api/v1/classes/:classId/members", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Meteorology", subject: "Earth Science" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
     await teacher.post(`/api/v1/classes/${classId}/archive`);
 
     const res = await teacher.get(`/api/v1/classes/${classId}/members`);
@@ -186,8 +186,8 @@ describe("GET /api/v1/classes/:classId — thinned response", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Anthropology", subject: "Social Science" });
-    const classId = createRes.body.data.class._id;
-    const joinCode = createRes.body.data.class.joinCode;
+    const classId = createRes.body.data.class.id;
+    const joinCode = createRes.body.data.class.code;
 
     const joinRes = await student
       .post("/api/v1/classes/join")
