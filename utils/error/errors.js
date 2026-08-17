@@ -64,6 +64,20 @@ class ConflictError extends BaseError {
   }
 }
 
+// Use UnprocessableEntityError for well-formed input that is semantically
+// invalid outside Zod body validation (e.g. an opaque pagination cursor
+// that doesn't decode) -- distinct from ValidationError (400): this is a
+// well-formed request the server still can't act on, not a malformed one.
+class UnprocessableEntityError extends BaseError {
+  constructor(description = "Unprocessable entity") {
+    super(
+      "UnprocessableEntityError",
+      STATUS_CODES.UNPROCESSABLE_ENTITY,
+      description,
+    );
+  }
+}
+
 const handleNotFound = (req, res) => {
   res.status(404).json({
     success: false,
@@ -83,5 +97,6 @@ module.exports = {
   AuthenticationError,
   NotFoundError,
   ConflictError,
+  UnprocessableEntityError,
   handleNotFound,
 };

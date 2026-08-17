@@ -40,4 +40,24 @@ const refreshLimiter = rateLimit({
   max: 30, // more lenient than authLimiter
   skip: skipInTest,
 });
-module.exports = { authLimiter, apiLimiter, refreshLimiter };
+
+// D17 "write-heavy" group. Not apiLimiter -- that one is unmounted anywhere
+// today and lacks skipInTest, so reusing it as-is would throttle the
+// --runInBand integration suite the same way authLimiter's own comment
+// above already flags as a hazard.
+const writeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 30,
+  skip: skipInTest,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      message: "Too many posts created, please try again later",
+      timestamp: new Date().toISOString(),
+    });
+  },
+});
+
+module.exports = { authLimiter, apiLimiter, refreshLimiter, writeLimiter };
