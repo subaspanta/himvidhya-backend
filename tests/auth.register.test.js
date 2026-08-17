@@ -52,3 +52,21 @@ describe("POST /api/v1/auth/register", () => {
     expect(res.body.timestamp).toBeDefined();
   });
 });
+
+describe("GET /api/v1/auth/me", () => {
+  it("includes isActive on the current-user DTO", async () => {
+    const agent = request.agent(app);
+    const registerRes = await agent.post("/api/v1/auth/register").send({
+      name: "Test User",
+      password: "Passw0rd!",
+      email: "me-isactive@example.com",
+      role: "student",
+    });
+    expect(registerRes.status).toBe(201);
+
+    const res = await agent.get("/api/v1/auth/me");
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.isActive).toBe(true);
+  });
+});
