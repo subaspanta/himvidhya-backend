@@ -40,7 +40,7 @@ describe("ClassMember-backed membership", () => {
       .post("/api/v1/classes")
       .send({ name: "Physics I", subject: "Physics" });
     expect(createRes.status).toBe(201);
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     const memberRowCount = await ClassMember.countDocuments({ classId });
     expect(memberRowCount).toBe(0);
@@ -64,8 +64,8 @@ describe("ClassMember-backed membership", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Chemistry I", subject: "Chemistry" });
-    const classId = createRes.body.data.class._id;
-    const joinCode = createRes.body.data.class.joinCode;
+    const classId = createRes.body.data.class.id;
+    const joinCode = createRes.body.data.class.code;
 
     const joinRes = await student.post("/api/v1/classes/join").send({ code: joinCode });
     expect(joinRes.status).toBe(201);
@@ -111,7 +111,7 @@ describe("ClassMember-backed membership", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Biology I", subject: "Biology" });
-    const joinCode = createRes.body.data.class.joinCode;
+    const joinCode = createRes.body.data.class.code;
 
     const firstJoin = await student.post("/api/v1/classes/join").send({ code: joinCode });
     const firstRequestId = firstJoin.body.data.joinRequest._id;
@@ -139,7 +139,7 @@ describe("ClassMember-backed membership", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Statistics I", subject: "Statistics" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     const meRes = await teacher.get("/api/v1/users/me");
     const ownerId = meRes.body.data.user._id;
@@ -176,8 +176,8 @@ describe("ClassMember-backed membership", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "History I", subject: "History" });
-    const classId = createRes.body.data.class._id;
-    const joinCode = createRes.body.data.class.joinCode;
+    const classId = createRes.body.data.class.id;
+    const joinCode = createRes.body.data.class.code;
 
     const joinRes = await student.post("/api/v1/classes/join").send({ code: joinCode });
     const requestId = joinRes.body.data.joinRequest._id;
@@ -205,7 +205,7 @@ describe("ClassMember-backed membership", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Geography I", subject: "Geography" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     const forbiddenRes = await outsider.get(`/api/v1/classes/${classId}`);
     expect(forbiddenRes.status).toBe(403);
@@ -232,8 +232,8 @@ describe("ClassMember-backed membership", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Left Class", subject: "Art" });
-    const classId = createRes.body.data.class._id;
-    const joinCode = createRes.body.data.class.joinCode;
+    const classId = createRes.body.data.class.id;
+    const joinCode = createRes.body.data.class.code;
 
     const joinRes = await student
       .post("/api/v1/classes/join")
@@ -261,8 +261,8 @@ describe("ClassMember-backed membership", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Removed Class", subject: "Music" });
-    const classId = createRes.body.data.class._id;
-    const joinCode = createRes.body.data.class.joinCode;
+    const classId = createRes.body.data.class.id;
+    const joinCode = createRes.body.data.class.code;
 
     const joinRes = await student
       .post("/api/v1/classes/join")
@@ -295,7 +295,7 @@ describe("ClassMember-backed membership", () => {
     const createRes = await ownerTeacher
       .post("/api/v1/classes")
       .send({ name: "Teacher A's Class", subject: "Physics" });
-    const joinCode = createRes.body.data.class.joinCode;
+    const joinCode = createRes.body.data.class.code;
 
     const joinRes = await student
       .post("/api/v1/classes/join")
@@ -325,7 +325,7 @@ describe("ClassMember-backed membership", () => {
     const createRes = await ownerTeacher
       .post("/api/v1/classes")
       .send({ name: "Teacher C's Class", subject: "Chemistry" });
-    const joinCode = createRes.body.data.class.joinCode;
+    const joinCode = createRes.body.data.class.code;
 
     const joinRes = await student
       .post("/api/v1/classes/join")

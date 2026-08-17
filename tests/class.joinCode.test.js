@@ -42,7 +42,7 @@ describe("POST /api/v1/classes/:classId/join-code/regenerate", () => {
     const createRes = await owner
       .post("/api/v1/classes")
       .send({ name: "Trigonometry", subject: "Math" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     const res = await otherTeacher.post(
       `/api/v1/classes/${classId}/join-code/regenerate`,
@@ -59,7 +59,7 @@ describe("POST /api/v1/classes/:classId/join-code/regenerate", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Linguistics", subject: "Linguistics" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
     await teacher.post(`/api/v1/classes/${classId}/archive`);
 
     const res = await teacher.post(
@@ -93,8 +93,8 @@ describe("POST /api/v1/classes/:classId/join-code/regenerate", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Astronomy", subject: "Astronomy" });
-    const classId = createRes.body.data.class._id;
-    const oldCode = createRes.body.data.class.joinCode;
+    const classId = createRes.body.data.class.id;
+    const oldCode = createRes.body.data.class.code;
 
     // Get the student into active membership before regenerating, so we
     // can prove the regeneration doesn't disturb it (PRD § 7.3).
@@ -108,7 +108,7 @@ describe("POST /api/v1/classes/:classId/join-code/regenerate", () => {
       `/api/v1/classes/${classId}/join-code/regenerate`,
     );
     expect(regenRes.status).toBe(200);
-    const newCode = regenRes.body.data.class.joinCode;
+    const newCode = regenRes.body.data.class.code;
     expect(newCode).not.toBe(oldCode);
 
     // Old code no longer resolves to any class.
@@ -144,18 +144,18 @@ describe("POST /api/v1/classes/:classId/join-code/regenerate", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Robotics", subject: "Engineering" });
-    const classId = createRes.body.data.class._id;
-    const firstCode = createRes.body.data.class.joinCode;
+    const classId = createRes.body.data.class.id;
+    const firstCode = createRes.body.data.class.code;
 
     const firstRegen = await teacher.post(
       `/api/v1/classes/${classId}/join-code/regenerate`,
     );
-    const secondCode = firstRegen.body.data.class.joinCode;
+    const secondCode = firstRegen.body.data.class.code;
 
     const secondRegen = await teacher.post(
       `/api/v1/classes/${classId}/join-code/regenerate`,
     );
-    const thirdCode = secondRegen.body.data.class.joinCode;
+    const thirdCode = secondRegen.body.data.class.code;
 
     expect(new Set([firstCode, secondCode, thirdCode]).size).toBe(3);
   });

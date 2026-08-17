@@ -249,7 +249,7 @@ const getCurrentUser = async (req, res) => {
     }
 
     const user = await User.findById(userId).select(
-      "_id name email avatar role isVerified",
+      "_id name email avatar role isVerified isActive",
     );
 
     if (!user) {
@@ -264,6 +264,7 @@ const getCurrentUser = async (req, res) => {
       email: user.email,
       avatar: user.avatar,
       role: user.role,
+      isActive: user.isActive,
       meta: {
         isVerified: user.isVerified,
       },

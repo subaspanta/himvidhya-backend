@@ -30,8 +30,8 @@ async function registerAndLogin(overrides) {
 
 async function createAndJoin(teacher, student, classPayload) {
   const createRes = await teacher.post("/api/v1/classes").send(classPayload);
-  const classId = createRes.body.data.class._id;
-  const joinCode = createRes.body.data.class.joinCode;
+  const classId = createRes.body.data.class.id;
+  const joinCode = createRes.body.data.class.code;
 
   const joinRes = await student
     .post("/api/v1/classes/join")
@@ -136,7 +136,7 @@ describe("DELETE /api/v1/classes/:classId/members/:userId", () => {
     const createRes = await owner
       .post("/api/v1/classes")
       .send({ name: "Quantum Mechanics", subject: "Physics" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
     const targetId = await getUserId(neverJoined);
 
     const res = await owner.delete(
@@ -154,7 +154,7 @@ describe("DELETE /api/v1/classes/:classId/members/:userId", () => {
     const createRes = await owner
       .post("/api/v1/classes")
       .send({ name: "Fluid Dynamics", subject: "Physics" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     const res = await owner.delete(
       `/api/v1/classes/${classId}/members/not-a-valid-id`,
@@ -232,8 +232,8 @@ describe("DELETE /api/v1/classes/:classId/members/:userId", () => {
     const createRes = await owner
       .post("/api/v1/classes")
       .send({ name: "Astrophysics", subject: "Physics" });
-    const classId = createRes.body.data.class._id;
-    const joinCode = createRes.body.data.class.joinCode;
+    const classId = createRes.body.data.class.id;
+    const joinCode = createRes.body.data.class.code;
     const studentId = await getUserId(student);
 
     const firstJoinRes = await student

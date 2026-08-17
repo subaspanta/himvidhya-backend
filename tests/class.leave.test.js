@@ -30,8 +30,8 @@ async function registerAndLogin(overrides) {
 
 async function createAndJoin(teacher, student, classPayload) {
   const createRes = await teacher.post("/api/v1/classes").send(classPayload);
-  const classId = createRes.body.data.class._id;
-  const joinCode = createRes.body.data.class.joinCode;
+  const classId = createRes.body.data.class.id;
+  const joinCode = createRes.body.data.class.code;
 
   const joinRes = await student
     .post("/api/v1/classes/join")
@@ -63,7 +63,7 @@ describe("DELETE /api/v1/classes/:classId/members/me", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Ecology", subject: "Biology" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     const res = await outsider.delete(
       `/api/v1/classes/${classId}/members/me`,
@@ -83,7 +83,7 @@ describe("DELETE /api/v1/classes/:classId/members/me", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Genetics", subject: "Biology" });
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     // The route restricts this action to the student role (only students
     // ever become ClassMember rows — C2), so a teacher caller is rejected
@@ -187,8 +187,8 @@ describe("DELETE /api/v1/classes/:classId/members/me", () => {
     const createRes = await teacher
       .post("/api/v1/classes")
       .send({ name: "Pathology", subject: "Biology" });
-    const classId = createRes.body.data.class._id;
-    const joinCode = createRes.body.data.class.joinCode;
+    const classId = createRes.body.data.class.id;
+    const joinCode = createRes.body.data.class.code;
 
     const firstJoinRes = await student
       .post("/api/v1/classes/join")

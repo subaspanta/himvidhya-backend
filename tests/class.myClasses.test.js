@@ -66,7 +66,7 @@ describe("GET /api/v1/classes", () => {
       subject: "Math",
     });
     expect(createRes.status).toBe(201);
-    const classId = createRes.body.data.class._id;
+    const classId = createRes.body.data.class.id;
 
     await agent.patch(`/api/v1/classes/${classId}`).send({
       description: "Integration and series",
@@ -83,5 +83,63 @@ describe("GET /api/v1/classes", () => {
     expect(classCard.description).toBe("Integration and series");
     expect(classCard.college).toBe("MIT");
     expect(classCard.semester).toBe("Spring 2027");
+  });
+
+  // Regression guard for the bug this DTO unification fixes: every
+  // class-mutation endpoint used to return the raw Mongoose document
+  // (unpopulated owner, no code/studentCount/lastActivity/status), which
+  // fails the client's ClassDtoSchema. A mutation response must now carry
+  // the exact same card shape as a GET /classes list row.
+  it("returns the same card shape from a mutation response as from the list", async () => {
+    const agent = request.agent(app);
+
+    const registerRes = await agent.post("/api/v1/auth/register").send({
+      name: "Teacher Three",
+      email: "teacher-owner-3@example.com",
+      password: "Passw0rd!",
+      role: "teacher",
+    });
+    expect(registerRes.status).toBe(201);
+
+    const createRes = await agent
+      .post("/api/v1/classes")
+      .send({ name: "Geometry", subject: "Math" });
+    expect(createRes.status).toBe(201);
+
+    const mutationCard = createRes.body.data.class;
+
+    expect(mutationCard).toMatchObject({
+      name: "Geometry",
+      subject: "Math",
+      studentCount: 0,
+      status: "active",
+    });
+    expect(mutationCard.id).toBeDefined();
+    expect(mutationCard.code).toBeDefined();
+    expect(mutationCard.createdAt).toBeDefined();
+    expect(mutationCard.owner).toMatchObject({
+      name: "Teacher Three",
+      email: "teacher-owner-3@example.com",
+      role: "teacher",
+    });
+    expect(mutationCard.owner._id).toBeDefined();
+    expect(mutationCard._id).toBeUndefined();
+    expect(mutationCard.joinCode).toBeUndefined();
+
+    const listRes = await agent.get("/api/v1/classes");
+    expect(listRes.status).toBe(200);
+    const listCard = listRes.body.data.classes.find(
+      (c) => c.id === mutationCard.id,
+    );
+
+    expect(Object.keys(listCard).sort()).toEqual(
+      Object.keys(mutationCard).sort(),
+    );
+    expect(listCard).toMatchObject({
+      id: mutationCard.id,
+      name: mutationCard.name,
+      code: mutationCard.code,
+      status: mutationCard.status,
+    });
   });
 });

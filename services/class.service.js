@@ -17,6 +17,44 @@ const {
   ownerIdOf,
 } = require("./guards/class.guards.js");
 
+// Card DTO shared by every class-returning endpoint: GET /classes, GET
+// /classes/:id (extended with membersCount below), and all five
+// class-mutation endpoints. Single source of truth for the wire shape so a
+// mutation response and a list-row response can never drift from each
+// other again -- previously only getMyClassesController built this shape,
+// and every mutation returned the raw Mongoose document instead.
+const toClassCard = (classDoc, studentCount) => {
+  const owner =
+    classDoc.owner && typeof classDoc.owner === "object"
+      ? {
+          _id: classDoc.owner._id.toString(),
+          name: classDoc.owner.name,
+          email: classDoc.owner.email,
+          role: classDoc.owner.role,
+          avatar: classDoc.owner.avatar,
+        }
+      : undefined;
+
+  return {
+    id: classDoc._id.toString(),
+    name: classDoc.name,
+    subject: classDoc.subject,
+    description: classDoc.description,
+    college: classDoc.college,
+    semester: classDoc.semester,
+    code: classDoc.joinCode,
+    studentCount,
+    lastActivity: classDoc.updatedAt
+      ? new Date(classDoc.updatedAt).toISOString()
+      : null,
+    status: classDoc.status || "active",
+    createdAt: classDoc.createdAt
+      ? new Date(classDoc.createdAt).toISOString()
+      : null,
+    owner,
+  };
+};
+
 const createClassService = async ({ name, subject, description }, userId) => {
   if (!userId) {
     throw new AuthenticationError("User ID required to create class");
@@ -32,7 +70,10 @@ const createClassService = async ({ name, subject, description }, userId) => {
     owner: userId,
   });
 
-  return newClass;
+  await newClass.populate("owner", "name email avatar role");
+
+  // A brand-new class has no members yet -- no ClassMember query needed.
+  return toClassCard(newClass, 0);
 };
 
 // Student requests to join a class — creates a pending JoinRequest
@@ -279,10 +320,9 @@ const getMyClassesService = async (userId) => {
     counts.map((c) => [c._id.toString(), c.count]),
   );
 
-  return classes.map((cls) => ({
-    ...cls,
-    studentCount: countByClassId.get(cls._id.toString()) || 0,
-  }));
+  return classes.map((cls) =>
+    toClassCard(cls, countByClassId.get(cls._id.toString()) || 0),
+  );
 };
 
 const getClassByIdService = async (classId, userId) => {
@@ -315,7 +355,7 @@ const getClassByIdService = async (classId, userId) => {
   });
 
   return {
-    ...classDoc,
+    ...toClassCard(classDoc, membersCount),
     membersCount,
   };
 };
@@ -354,7 +394,7 @@ const getClassMembersService = async (classId, userId) => {
 // Cover image is deliberately excluded — the field does not exist on the
 // model yet, and the presigned-upload flow it needs lands with Materials.
 const updateClassService = async (classId, userId, updates) => {
-  const classDoc = await loadClassOrThrow(classId);
+  const classDoc = await loadClassOrThrow(classId, { populateOwner: true });
 
   assertClassOwner(classDoc, userId);
   assertClassWritable(classDoc);
@@ -362,7 +402,12 @@ const updateClassService = async (classId, userId, updates) => {
   Object.assign(classDoc, updates);
   await classDoc.save();
 
-  return classDoc;
+  const studentCount = await ClassMember.countDocuments({
+    classId: classDoc._id,
+    status: "active",
+  });
+
+  return toClassCard(classDoc, studentCount);
 };
 
 // Owner archives their own class (Implementation.md item 11). Deliberately
@@ -373,7 +418,7 @@ const updateClassService = async (classId, userId, updates) => {
 // used for "already resolved" join requests rather than overloading the
 // writable guard's 403 semantics.
 const archiveClassService = async (classId, userId) => {
-  const classDoc = await loadClassOrThrow(classId);
+  const classDoc = await loadClassOrThrow(classId, { populateOwner: true });
 
   assertClassOwner(classDoc, userId);
 
@@ -384,7 +429,12 @@ const archiveClassService = async (classId, userId) => {
   classDoc.status = "archived";
   await classDoc.save();
 
-  return classDoc;
+  const studentCount = await ClassMember.countDocuments({
+    classId: classDoc._id,
+    status: "active",
+  });
+
+  return toClassCard(classDoc, studentCount);
 };
 
 // Owner restores their own archived class (Implementation.md item 11).
@@ -392,7 +442,7 @@ const archiveClassService = async (classId, userId) => {
 // would incorrectly 403 the one case restore exists to handle (the class
 // is archived), so this checks the inverse state directly instead.
 const restoreClassService = async (classId, userId) => {
-  const classDoc = await loadClassOrThrow(classId);
+  const classDoc = await loadClassOrThrow(classId, { populateOwner: true });
 
   assertClassOwner(classDoc, userId);
 
@@ -403,14 +453,19 @@ const restoreClassService = async (classId, userId) => {
   classDoc.status = "active";
   await classDoc.save();
 
-  return classDoc;
+  const studentCount = await ClassMember.countDocuments({
+    classId: classDoc._id,
+    status: "active",
+  });
+
+  return toClassCard(classDoc, studentCount);
 };
 
 // Owner regenerates their class's join code (Implementation.md item 12).
 // The old code stops resolving to any class immediately; existing
 // ClassMember rows are untouched (PRD § 7.3).
 const regenerateJoinCodeService = async (classId, userId) => {
-  const classDoc = await loadClassOrThrow(classId);
+  const classDoc = await loadClassOrThrow(classId, { populateOwner: true });
 
   assertClassOwner(classDoc, userId);
   assertClassWritable(classDoc);
@@ -418,7 +473,12 @@ const regenerateJoinCodeService = async (classId, userId) => {
   classDoc.joinCode = await Class.generateUniqueCode();
   await classDoc.save();
 
-  return classDoc;
+  const studentCount = await ClassMember.countDocuments({
+    classId: classDoc._id,
+    status: "active",
+  });
+
+  return toClassCard(classDoc, studentCount);
 };
 
 // Student leaves a class they are an active member of (Implementation.md
