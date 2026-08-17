@@ -101,6 +101,41 @@ const updateClassSchema = z
     message: "At least one field must be provided",
   });
 
+// Matches Post.model.js's own field constraints (title 200 chars, content
+// 10000 chars) -- anything passing this Zod schema is guaranteed to also
+// pass the Mongoose model's constraints.
+const createPostSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, "Title is required")
+    .max(200, "Title cannot exceed 200 characters"),
+  content: z
+    .string()
+    .trim()
+    .min(1, "Content is required")
+    .max(10000, "Content cannot exceed 10000 characters"),
+});
+
+const updatePostSchema = z
+  .object({
+    title: z
+      .string()
+      .trim()
+      .min(1, "Title cannot be empty")
+      .max(200, "Title cannot exceed 200 characters")
+      .optional(),
+    content: z
+      .string()
+      .trim()
+      .min(1, "Content cannot be empty")
+      .max(10000, "Content cannot exceed 10000 characters")
+      .optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided",
+  });
+
 module.exports = {
   registerSchema,
   loginSchema,
@@ -111,4 +146,6 @@ module.exports = {
   passwordSchema,
   joinClassSchema,
   updateClassSchema,
+  createPostSchema,
+  updatePostSchema,
 };
