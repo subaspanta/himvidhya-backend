@@ -97,6 +97,21 @@ describe("GET /classes/:classId/posts", () => {
     expect(res.body.data.posts).toHaveLength(1);
   });
 
+  it("populates the post author on every feed row", async () => {
+    const { teacher, classId } = await createClassAndTeacher("feed-author@example.com");
+    await teacher.post(`/api/v1/classes/${classId}/posts`).send({ title: "Post 1", content: "C" });
+
+    const res = await teacher.get(`/api/v1/classes/${classId}/posts`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.posts).toHaveLength(1);
+    expect(res.body.data.posts[0].authorId).toMatchObject({
+      name: "Test User",
+      role: "teacher",
+    });
+    expect(res.body.data.posts[0].authorId._id).toBeDefined();
+  });
+
   it("stays readable on an archived class", async () => {
     const { teacher, classId } = await createClassAndTeacher("feed-archived@example.com");
     await teacher.post(`/api/v1/classes/${classId}/posts`).send({ title: "Post 1", content: "C" });

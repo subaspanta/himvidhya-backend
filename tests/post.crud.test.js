@@ -59,6 +59,11 @@ describe("POST /classes/:classId/posts", () => {
     expect(res.body.data.post.title).toBe("Welcome");
     expect(res.body.data.post.isPinned).toBe(false);
     expect(res.body.data.post.deletedAt).toBeNull();
+    expect(res.body.data.post.authorId).toMatchObject({
+      name: "Test User",
+      role: "teacher",
+    });
+    expect(res.body.data.post.authorId._id).toBeDefined();
   });
 
   it("401s when unauthenticated", async () => {

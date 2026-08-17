@@ -43,12 +43,16 @@ const createPostService = async (classId, teacherId, { title, content }) => {
   assertClassOwner(classDoc, teacherId);
   assertClassWritable(classDoc);
 
-  return Post.create({
+  const post = await Post.create({
     title,
     content,
     classId: classDoc._id,
     authorId: teacherId,
   });
+
+  await post.populate("authorId", "name email avatar role");
+
+  return post;
 };
 
 /**
@@ -82,7 +86,11 @@ const listPostsFeedService = async (
     if (cursor) {
       Object.assign(filter, buildCursorQuery({ cursor, direction: "desc" }));
     }
-    return Post.find(filter).sort(PINNED_SORT).limit(limit).lean();
+    return Post.find(filter)
+      .sort(PINNED_SORT)
+      .limit(limit)
+      .populate("authorId", "name email avatar role")
+      .lean();
   };
 
   let combined;
@@ -154,6 +162,7 @@ const updatePostService = async (postId, userId, updates) => {
   if (updates.title !== undefined) post.title = updates.title;
   if (updates.content !== undefined) post.content = updates.content;
   await post.save();
+  await post.populate("authorId", "name email avatar role");
   return post;
 };
 
@@ -169,6 +178,7 @@ const deletePostService = async (postId, userId) => {
 
   post.deletedAt = new Date();
   await post.save();
+  await post.populate("authorId", "name email avatar role");
   return post;
 };
 
@@ -200,7 +210,7 @@ const pinPostService = async (postId, userId) => {
     { _id: post._id, isPinned: false },
     { $set: { isPinned: true } },
     { new: true },
-  );
+  ).populate("authorId", "name email avatar role");
   if (!updated) throw new ConflictError("Post is already pinned");
   return updated;
 };
@@ -216,6 +226,7 @@ const unpinPostService = async (postId, userId) => {
 
   post.isPinned = false;
   await post.save();
+  await post.populate("authorId", "name email avatar role");
   return post;
 };
 
