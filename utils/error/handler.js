@@ -8,6 +8,7 @@ const {
   BadRequestError,
   ForbiddenError,
   ConflictError,
+  UnprocessableEntityError,
 } = require("./errors");
 const { logger } = require("../../logger");
 
@@ -59,6 +60,7 @@ const HandleErrorWithLogger = (err, req, res, _next) => {
     BadRequestError,
     ForbiddenError,
     ConflictError,
+    UnprocessableEntityError,
   ];
 
   knownErrors.forEach((ErrorType) => {
