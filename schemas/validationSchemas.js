@@ -136,6 +136,25 @@ const updatePostSchema = z
     message: "At least one field must be provided",
   });
 
+// Matches Comment.model.js's own field constraint (content 2000 chars) --
+// anything passing this Zod schema is guaranteed to also pass the Mongoose
+// model's constraint.
+const createCommentSchema = z.object({
+  content: z
+    .string()
+    .trim()
+    .min(1, "Content is required")
+    .max(2000, "Comment cannot exceed 2000 characters"),
+});
+
+const updateCommentSchema = z.object({
+  content: z
+    .string()
+    .trim()
+    .min(1, "Content cannot be empty")
+    .max(2000, "Comment cannot exceed 2000 characters"),
+});
+
 // Matches Material.model.js's own field constraints (title 200 chars,
 // description 1000 chars) -- anything passing this Zod schema is
 // guaranteed to also pass the Mongoose model's constraints. mimeType/size
@@ -206,6 +225,8 @@ module.exports = {
   updateClassSchema,
   createPostSchema,
   updatePostSchema,
+  createCommentSchema,
+  updateCommentSchema,
   requestMaterialUploadUrlSchema,
   confirmMaterialUploadSchema,
   updateMaterialSchema,
