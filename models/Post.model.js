@@ -1,10 +1,33 @@
 const mongoose = require("mongoose");
 
-// D4: no attachments field -- file upload is a Materials-phase concern with
-// its own storage client, not built yet. D3: content is plain text -- the
-// server stores/returns it as an opaque string with no sanitization or
-// markdown/HTML interpretation; "renders as plain text" is a client
-// rendering guarantee, out of scope here.
+// Attachment subdocument: three kinds the composer can attach. storageKey
+// (file only) never leaves the server -- stripped before serialization by
+// post.service.js's stripAttachments (attachmentStorage.service.js).
+const postAttachmentSchema = new mongoose.Schema(
+  {
+    type: {
+      type: String,
+      enum: ["file", "link", "youtube"],
+      required: true,
+    },
+    url: { type: String, trim: true }, // link + youtube
+    fileName: { type: String, trim: true }, // file
+    mimeType: { type: String }, // file
+    size: { type: Number }, // file
+    storageKey: { type: String }, // file -- stripped before serialization
+    thumbnailUrl: { type: String }, // youtube, derived server-side
+  },
+  { _id: true },
+);
+
+// D4 (superseded): file attachments now use the shared presigned-upload
+// storage client (ADR-0005, attachmentStorage.service.js) via the same
+// presign-PUT/verify flow -- see requestPostAttachmentUploadUrlService/
+// resolveAttachmentsForSave in post.service.js. D3: content is plain text
+// -- the server stores/returns
+// it as an opaque string with no sanitization or markdown/HTML
+// interpretation; "renders as plain text" is a client rendering guarantee,
+// out of scope here.
 const postSchema = new mongoose.Schema(
   {
     title: {
@@ -38,6 +61,10 @@ const postSchema = new mongoose.Schema(
     deletedAt: {
       type: Date,
       default: null,
+    },
+    attachments: {
+      type: [postAttachmentSchema],
+      default: [],
     },
   },
   { timestamps: true },

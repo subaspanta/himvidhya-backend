@@ -2,6 +2,7 @@ const Post = require("../models/Post.model.js");
 const {
   ConflictError,
   BadRequestError,
+  NotFoundError,
   UnprocessableEntityError,
 } = require("../utils/error/errors.js");
 const {
@@ -11,6 +12,14 @@ const {
   assertClassWritable,
 } = require("./guards/class.guards.js");
 const { loadPostOrThrow, assertPostAuthor } = require("./guards/post.guards.js");
+const { presignPut, presignGet } = require("../config/storage.js");
+const {
+  assertUploadable,
+  buildStorageKey,
+  verifyUploadedObject,
+  stripNestedStorageKeys,
+  discardObject,
+} = require("./attachmentStorage.service.js");
 const {
   encodeCursor,
   decodeCursor,
@@ -23,6 +32,65 @@ const DEFAULT_POST_PAGE_SIZE = 20; // D14 per-resource default
 const MAX_PINNED_POSTS_PER_CLASS = 3; // I5
 const PINNED_SORT = { createdAt: -1, _id: -1 };
 
+// Matches watch?v=, youtu.be/, embed/, and shorts/ URL forms. Thumbnail URL
+// is built from YouTube's own public, unauthenticated image convention --
+// no external API call needed.
+const YOUTUBE_ID_PATTERN =
+  /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
+
+const extractYoutubeThumbnail = (url) => {
+  const match = YOUTUBE_ID_PATTERN.exec(url);
+  if (!match) {
+    throw new BadRequestError("Invalid YouTube URL");
+  }
+  return `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
+};
+
+// Resolves client-submitted attachment specs into the shape actually
+// stored on Post.attachments. File entries are verified against the real
+// object via verifyUploadedObject -- the "don't trust the client's
+// declared mimeType/size a second time" gap that closes for every
+// presigned-upload feature (attachmentStorage.service.js).
+const resolveAttachmentsForSave = async (classDoc, attachments) => {
+  return Promise.all(
+    attachments.map(async (attachment) => {
+      if (attachment.type === "link") {
+        return { type: "link", url: attachment.url };
+      }
+
+      if (attachment.type === "youtube") {
+        return {
+          type: "youtube",
+          url: attachment.url,
+          thumbnailUrl: extractYoutubeThumbnail(attachment.url),
+        };
+      }
+
+      const { mimeType, size } = await verifyUploadedObject(
+        attachment.storageKey,
+        `classes/${classDoc._id}/posts/`,
+      );
+
+      return {
+        type: "file",
+        fileName: attachment.fileName,
+        mimeType,
+        size,
+        storageKey: attachment.storageKey,
+      };
+    }),
+  );
+};
+
+// storageKey never leaves the server (ADR-0005), applied to every post
+// response the same way (attachmentStorage.service.js).
+const stripAttachments = (post) => stripNestedStorageKeys(post, "attachments");
+
+const fileStorageKeys = (attachments) =>
+  (attachments || [])
+    .filter((attachment) => attachment.type === "file")
+    .map((attachment) => attachment.storageKey);
+
 // Post-specific cursor decode: cursor.js validates createdAt/_id generically;
 // this layers the one extra field the pinned-boundary algorithm below needs,
 // without cursor.js knowing Posts (or pinning) exist.
@@ -34,7 +102,11 @@ const decodePostCursor = (token) => {
   return decoded;
 };
 
-const createPostService = async (classId, teacherId, { title, content }) => {
+const createPostService = async (
+  classId,
+  teacherId,
+  { title, content, attachments = [] },
+) => {
   if (!title || !content) {
     throw new BadRequestError("Title and content are required");
   }
@@ -43,16 +115,74 @@ const createPostService = async (classId, teacherId, { title, content }) => {
   assertClassOwner(classDoc, teacherId);
   assertClassWritable(classDoc);
 
+  const resolvedAttachments = await resolveAttachmentsForSave(classDoc, attachments);
+
   const post = await Post.create({
     title,
     content,
     classId: classDoc._id,
     authorId: teacherId,
+    attachments: resolvedAttachments,
   });
 
   await post.populate("authorId", "name email avatar role");
 
-  return post;
+  return stripAttachments(post);
+};
+
+// Step 1 of the attachment flow: authorize + validate declared
+// MIME/size, issue a presigned PUT for a server-generated key. No DB write
+// -- the key is only persisted once the post is created/updated with it
+// (resolveAttachmentsForSave verifies the object then).
+const requestPostAttachmentUploadUrlService = async (
+  classId,
+  userId,
+  { fileName, mimeType, size },
+) => {
+  const classDoc = await loadClassOrThrow(classId);
+  assertClassOwner(classDoc, userId);
+  assertClassWritable(classDoc);
+  assertUploadable({ mimeType, size });
+
+  const storageKey = buildStorageKey(`classes/${classDoc._id}/posts`, fileName);
+  const uploadUrl = await presignPut(storageKey, { contentType: mimeType });
+
+  return { uploadUrl, storageKey };
+};
+
+// Composer-side cleanup: a file gets PUT to storage the moment it's
+// selected, before any post exists. If the composer removes it (or the
+// draft is abandoned) before submit, the object would otherwise sit
+// unreferenced forever -- this is the same "no silent accumulation"
+// policy Materials applies on remove/replace/delete, just triggered from
+// the client instead of a DB write.
+const discardPostAttachmentUploadService = async (classId, userId, { storageKey }) => {
+  const classDoc = await loadClassOrThrow(classId);
+  assertClassOwner(classDoc, userId);
+
+  if (!storageKey || !storageKey.startsWith(`classes/${classDoc._id}/posts/`)) {
+    throw new BadRequestError("Invalid storage key for this class");
+  }
+
+  await discardObject(storageKey, { classId: classDoc._id.toString(), userId });
+};
+
+// File bytes are only ever reachable through a freshly-signed, short-lived
+// URL, never a URL embedded in the post response.
+const getPostAttachmentDownloadUrlService = async (postId, attachmentId, userId) => {
+  const post = await loadPostOrThrow(postId);
+  const classDoc = await loadClassOrThrow(post.classId);
+  await assertActiveMember(classDoc, userId, {
+    message: "You are not a member of this class",
+  });
+
+  const attachment = post.attachments.id(attachmentId);
+  if (!attachment || attachment.type !== "file") {
+    throw new NotFoundError("Attachment not found");
+  }
+
+  const downloadUrl = await presignGet(attachment.storageKey);
+  return { downloadUrl, fileName: attachment.fileName };
 };
 
 /**
@@ -131,7 +261,7 @@ const listPostsFeedService = async (
       })
     : null;
 
-  return { posts, meta: buildPageMeta({ hasMore, nextCursor }) };
+  return { posts: posts.map(stripAttachments), meta: buildPageMeta({ hasMore, nextCursor }) };
 };
 
 // Author populated for a richer single-post view (mirrors
@@ -146,7 +276,7 @@ const getPostByIdService = async (postId, userId) => {
     message: "You are not a member of this class",
   });
   // I7: no deletedAt-based exclusion -- tombstones stay retrievable as-is.
-  return post;
+  return stripAttachments(post);
 };
 
 const updatePostService = async (postId, userId, updates) => {
@@ -161,9 +291,24 @@ const updatePostService = async (postId, userId, updates) => {
 
   if (updates.title !== undefined) post.title = updates.title;
   if (updates.content !== undefined) post.content = updates.content;
+
+  let removedFileKeys = [];
+  if (updates.attachments !== undefined) {
+    const oldFileKeys = fileStorageKeys(post.attachments);
+    post.attachments = await resolveAttachmentsForSave(classDoc, updates.attachments);
+    const newFileKeys = new Set(fileStorageKeys(post.attachments));
+    removedFileKeys = oldFileKeys.filter((key) => !newFileKeys.has(key));
+  }
+
   await post.save();
+
+  // Best-effort, after save: the record is already authoritative, a
+  // cleanup failure here just leaves a logged orphan (attachmentStorage's
+  // discardObject), same policy Materials applies on replace.
+  await Promise.all(removedFileKeys.map((key) => discardObject(key, { postId: post._id.toString() })));
+
   await post.populate("authorId", "name email avatar role");
-  return post;
+  return stripAttachments(post);
 };
 
 const deletePostService = async (postId, userId) => {
@@ -176,10 +321,19 @@ const deletePostService = async (postId, userId) => {
     throw new ConflictError("Post is already deleted");
   }
 
+  const fileKeys = fileStorageKeys(post.attachments);
+
   post.deletedAt = new Date();
   await post.save();
+
+  // Post soft-delete has no restore path (I7 only guarantees the tombstone
+  // metadata stays retrievable, not its attachments -- PostAttachments.tsx
+  // never renders them once isDeleted). Effectively final, so the file
+  // objects are cleaned up the same as Materials' hard delete.
+  await Promise.all(fileKeys.map((key) => discardObject(key, { postId: post._id.toString() })));
+
   await post.populate("authorId", "name email avatar role");
-  return post;
+  return stripAttachments(post);
 };
 
 const pinPostService = async (postId, userId) => {
@@ -212,7 +366,7 @@ const pinPostService = async (postId, userId) => {
     { new: true },
   ).populate("authorId", "name email avatar role");
   if (!updated) throw new ConflictError("Post is already pinned");
-  return updated;
+  return stripAttachments(updated);
 };
 
 const unpinPostService = async (postId, userId) => {
@@ -227,7 +381,7 @@ const unpinPostService = async (postId, userId) => {
   post.isPinned = false;
   await post.save();
   await post.populate("authorId", "name email avatar role");
-  return post;
+  return stripAttachments(post);
 };
 
 module.exports = {
@@ -238,4 +392,7 @@ module.exports = {
   deletePostService,
   pinPostService,
   unpinPostService,
+  requestPostAttachmentUploadUrlService,
+  discardPostAttachmentUploadService,
+  getPostAttachmentDownloadUrlService,
 };

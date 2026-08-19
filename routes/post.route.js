@@ -22,13 +22,18 @@ const {
   deletePostController,
   pinPostController,
   unpinPostController,
+  requestPostAttachmentUploadUrlController,
+  discardPostAttachmentUploadController,
+  getPostAttachmentDownloadUrlController,
 } = require("../controllers/post.controller.js");
 const { authenticate, authorize } = require("../middleware/auth.middleware.js");
 const validate = require("../middleware/validateRequest.middleware.js");
-const { writeLimiter } = require("../middleware/rateLimiter.middleware.js");
+const { writeLimiter, uploadLimiter } = require("../middleware/rateLimiter.middleware.js");
 const {
   createPostSchema,
   updatePostSchema,
+  requestPostAttachmentUploadUrlSchema,
+  discardPostAttachmentUploadSchema,
 } = require("../schemas/validationSchemas.js");
 
 // -- mounted at ${apiV1Path}/classes/:classId/posts --
@@ -41,6 +46,21 @@ classScopedPostRoutes.post(
   createPostController,
 );
 classScopedPostRoutes.get("/", authenticate, listPostsController);
+classScopedPostRoutes.post(
+  "/attachment-upload-url",
+  authenticate,
+  authorize({ roles: ["teacher"] }),
+  uploadLimiter,
+  validate(requestPostAttachmentUploadUrlSchema),
+  requestPostAttachmentUploadUrlController,
+);
+classScopedPostRoutes.delete(
+  "/attachment-upload-url",
+  authenticate,
+  authorize({ roles: ["teacher"] }),
+  validate(discardPostAttachmentUploadSchema),
+  discardPostAttachmentUploadController,
+);
 
 // -- mounted at ${apiV1Path}/posts --
 postRoutes.get("/:postId", authenticate, getPostByIdController);
@@ -68,6 +88,11 @@ postRoutes.delete(
   authenticate,
   authorize({ roles: ["teacher"] }),
   unpinPostController,
+);
+postRoutes.get(
+  "/:postId/attachments/:attachmentId/download-url",
+  authenticate,
+  getPostAttachmentDownloadUrlController,
 );
 
 module.exports = { classScopedPostRoutes, postRoutes };

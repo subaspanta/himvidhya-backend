@@ -1,8 +1,9 @@
-// PRD §7.6 / Domain Model I10: allowed file types and the 25 MB cap.
-// Shared by the upload-url validation, the replace-url validation, and the
-// client's own pre-check -- server-side is the enforced boundary either way.
+// PRD §7.6 / Domain Model I10: allowed file types and the 25 MB cap for any
+// feature using the presigned-upload flow (ADR-0005). Shared by the
+// upload-url validation and the client's own pre-check -- server-side is
+// the enforced boundary either way.
 
-const MAX_MATERIAL_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
+const MAX_ATTACHMENT_SIZE_BYTES = 25 * 1024 * 1024; // 25 MB
 
 const ALLOWED_MIME_TYPES = new Set([
   "application/pdf", // .pdf
@@ -16,4 +17,4 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg", // .jpg, .jpeg
 ]);
 
-module.exports = { MAX_MATERIAL_SIZE_BYTES, ALLOWED_MIME_TYPES };
+module.exports = { MAX_ATTACHMENT_SIZE_BYTES, ALLOWED_MIME_TYPES };

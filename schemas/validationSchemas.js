@@ -101,6 +101,51 @@ const updateClassSchema = z
     message: "At least one field must be provided",
   });
 
+// Attachment shapes the composer can submit alongside a post. File
+// attachments only carry the storageKey issued by
+// requestPostAttachmentUploadUrlService -- mimeType/size are re-derived
+// server-side from the real object (post.service.js's verifyUploadedObject
+// check). Max 10 mirrors the I5-style caps already used elsewhere in this
+// schema file (e.g. pinned posts).
+const MAX_POST_ATTACHMENTS = 10;
+
+const postFileAttachmentSchema = z.object({
+  type: z.literal("file"),
+  storageKey: z.string().trim().min(1, "Storage key is required"),
+  fileName: z.string().trim().min(1, "File name is required"),
+});
+
+// z.string().url() only checks that `new URL()` doesn't throw -- it accepts
+// any scheme, including javascript:. Since these URLs are later rendered as
+// a raw href client-side (PostAttachments.tsx), an unrestricted scheme is a
+// stored-XSS vector. Restrict to http(s) here, the actual boundary.
+const httpUrlSchema = z
+  .string()
+  .trim()
+  .url("Invalid URL")
+  .refine((url) => /^https?:\/\//i.test(url), "URL must start with http:// or https://");
+
+const postLinkAttachmentSchema = z.object({
+  type: z.literal("link"),
+  url: httpUrlSchema,
+});
+
+const postYoutubeAttachmentSchema = z.object({
+  type: z.literal("youtube"),
+  url: httpUrlSchema,
+});
+
+const postAttachmentInputSchema = z.discriminatedUnion("type", [
+  postFileAttachmentSchema,
+  postLinkAttachmentSchema,
+  postYoutubeAttachmentSchema,
+]);
+
+const postAttachmentsSchema = z
+  .array(postAttachmentInputSchema)
+  .max(MAX_POST_ATTACHMENTS, `Cannot attach more than ${MAX_POST_ATTACHMENTS} items`)
+  .optional();
+
 // Matches Post.model.js's own field constraints (title 200 chars, content
 // 10000 chars) -- anything passing this Zod schema is guaranteed to also
 // pass the Mongoose model's constraints.
@@ -115,6 +160,7 @@ const createPostSchema = z.object({
     .trim()
     .min(1, "Content is required")
     .max(10000, "Content cannot exceed 10000 characters"),
+  attachments: postAttachmentsSchema,
 });
 
 const updatePostSchema = z
@@ -131,10 +177,25 @@ const updatePostSchema = z
       .min(1, "Content cannot be empty")
       .max(10000, "Content cannot exceed 10000 characters")
       .optional(),
+    attachments: postAttachmentsSchema,
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided",
   });
+
+// Declared-value fast-reject; server-side headObject re-verification
+// happens downstream in post.service.js's verifyUploadedObject.
+const requestPostAttachmentUploadUrlSchema = z.object({
+  fileName: z.string().trim().min(1, "File name is required"),
+  mimeType: z.string().trim().min(1, "MIME type is required"),
+  size: z.number().int().positive("Size must be a positive number"),
+});
+
+// Composer-side discard: a file already PUT to storage but never attached
+// to a saved post (removed before submit, or the draft was abandoned).
+const discardPostAttachmentUploadSchema = z.object({
+  storageKey: z.string().trim().min(1, "Storage key is required"),
+});
 
 // Matches Comment.model.js's own field constraint (content 2000 chars) --
 // anything passing this Zod schema is guaranteed to also pass the Mongoose
@@ -155,64 +216,6 @@ const updateCommentSchema = z.object({
     .max(2000, "Comment cannot exceed 2000 characters"),
 });
 
-// Matches Material.model.js's own field constraints (title 200 chars,
-// description 1000 chars) -- anything passing this Zod schema is
-// guaranteed to also pass the Mongoose model's constraints. mimeType/size
-// are re-validated server-side against the real object (material.service.js
-// headObject checks) -- these bounds are a fast client-facing rejection,
-// not the enforcement boundary.
-const requestMaterialUploadUrlSchema = z.object({
-  fileName: z.string().trim().min(1, "File name is required"),
-  mimeType: z.string().trim().min(1, "MIME type is required"),
-  size: z.number().int().positive("Size must be a positive number"),
-});
-
-const confirmMaterialUploadSchema = z.object({
-  storageKey: z.string().trim().min(1, "Storage key is required"),
-  title: z
-    .string()
-    .trim()
-    .min(1, "Title is required")
-    .max(200, "Title cannot exceed 200 characters"),
-  description: z
-    .string()
-    .trim()
-    .max(1000, "Description cannot exceed 1000 characters")
-    .optional(),
-  fileName: z.string().trim().min(1, "File name is required"),
-});
-
-// storageKey/fileName are only ever populated by the replace flow (a
-// client PUTs to the URL from POST /materials/:id/replace-url first, then
-// echoes the returned storageKey here) -- material.service.js verifies it
-// against the real object via headObject before accepting it, the same way
-// confirmMaterialUploadSchema's storageKey is verified.
-const updateMaterialSchema = z
-  .object({
-    title: z
-      .string()
-      .trim()
-      .min(1, "Title cannot be empty")
-      .max(200, "Title cannot exceed 200 characters")
-      .optional(),
-    description: z
-      .string()
-      .trim()
-      .max(1000, "Description cannot exceed 1000 characters")
-      .optional(),
-    storageKey: z.string().trim().min(1).optional(),
-    fileName: z.string().trim().min(1).optional(),
-  })
-  .refine((data) => Object.keys(data).length > 0, {
-    message: "At least one field must be provided",
-  });
-
-const requestMaterialReplaceUrlSchema = z.object({
-  fileName: z.string().trim().min(1, "File name is required"),
-  mimeType: z.string().trim().min(1, "MIME type is required"),
-  size: z.number().int().positive("Size must be a positive number"),
-});
-
 module.exports = {
   registerSchema,
   loginSchema,
@@ -225,10 +228,8 @@ module.exports = {
   updateClassSchema,
   createPostSchema,
   updatePostSchema,
+  requestPostAttachmentUploadUrlSchema,
+  discardPostAttachmentUploadSchema,
   createCommentSchema,
   updateCommentSchema,
-  requestMaterialUploadUrlSchema,
-  confirmMaterialUploadSchema,
-  updateMaterialSchema,
-  requestMaterialReplaceUrlSchema,
 };

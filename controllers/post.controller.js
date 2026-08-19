@@ -6,21 +6,53 @@ const {
   deletePostService,
   pinPostService,
   unpinPostService,
+  requestPostAttachmentUploadUrlService,
+  discardPostAttachmentUploadService,
+  getPostAttachmentDownloadUrlService,
 } = require("../services/post.service.js");
 const {
   createdResponse,
   successResponse,
+  noContentResponse,
 } = require("../utils/responseParser.js");
 const asyncHandler = require("../helpers/asyncHandler.js");
 
 const createPostController = asyncHandler(async (req, res) => {
   const { classId } = req.params;
-  const { title, content } = req.body;
+  const { title, content, attachments } = req.body;
   const post = await createPostService(classId, req.auth.userId, {
     title,
     content,
+    attachments,
   });
   return createdResponse(res, { post }, "Post created successfully");
+});
+
+const requestPostAttachmentUploadUrlController = asyncHandler(async (req, res) => {
+  const { classId } = req.params;
+  const { fileName, mimeType, size } = req.body;
+  const result = await requestPostAttachmentUploadUrlService(classId, req.auth.userId, {
+    fileName,
+    mimeType,
+    size,
+  });
+  return successResponse(res, result, "Upload URL issued successfully");
+});
+
+const discardPostAttachmentUploadController = asyncHandler(async (req, res) => {
+  const { classId } = req.params;
+  await discardPostAttachmentUploadService(classId, req.auth.userId, req.body);
+  return noContentResponse(res);
+});
+
+const getPostAttachmentDownloadUrlController = asyncHandler(async (req, res) => {
+  const { postId, attachmentId } = req.params;
+  const result = await getPostAttachmentDownloadUrlService(
+    postId,
+    attachmentId,
+    req.auth.userId,
+  );
+  return successResponse(res, result, "Download URL issued successfully");
 });
 
 // First real caller of successResponse's meta (5th) argument.
@@ -71,4 +103,7 @@ module.exports = {
   deletePostController,
   pinPostController,
   unpinPostController,
+  requestPostAttachmentUploadUrlController,
+  discardPostAttachmentUploadController,
+  getPostAttachmentDownloadUrlController,
 };
