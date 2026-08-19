@@ -136,6 +136,64 @@ const updatePostSchema = z
     message: "At least one field must be provided",
   });
 
+// Matches Material.model.js's own field constraints (title 200 chars,
+// description 1000 chars) -- anything passing this Zod schema is
+// guaranteed to also pass the Mongoose model's constraints. mimeType/size
+// are re-validated server-side against the real object (material.service.js
+// headObject checks) -- these bounds are a fast client-facing rejection,
+// not the enforcement boundary.
+const requestMaterialUploadUrlSchema = z.object({
+  fileName: z.string().trim().min(1, "File name is required"),
+  mimeType: z.string().trim().min(1, "MIME type is required"),
+  size: z.number().int().positive("Size must be a positive number"),
+});
+
+const confirmMaterialUploadSchema = z.object({
+  storageKey: z.string().trim().min(1, "Storage key is required"),
+  title: z
+    .string()
+    .trim()
+    .min(1, "Title is required")
+    .max(200, "Title cannot exceed 200 characters"),
+  description: z
+    .string()
+    .trim()
+    .max(1000, "Description cannot exceed 1000 characters")
+    .optional(),
+  fileName: z.string().trim().min(1, "File name is required"),
+});
+
+// storageKey/fileName are only ever populated by the replace flow (a
+// client PUTs to the URL from POST /materials/:id/replace-url first, then
+// echoes the returned storageKey here) -- material.service.js verifies it
+// against the real object via headObject before accepting it, the same way
+// confirmMaterialUploadSchema's storageKey is verified.
+const updateMaterialSchema = z
+  .object({
+    title: z
+      .string()
+      .trim()
+      .min(1, "Title cannot be empty")
+      .max(200, "Title cannot exceed 200 characters")
+      .optional(),
+    description: z
+      .string()
+      .trim()
+      .max(1000, "Description cannot exceed 1000 characters")
+      .optional(),
+    storageKey: z.string().trim().min(1).optional(),
+    fileName: z.string().trim().min(1).optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided",
+  });
+
+const requestMaterialReplaceUrlSchema = z.object({
+  fileName: z.string().trim().min(1, "File name is required"),
+  mimeType: z.string().trim().min(1, "MIME type is required"),
+  size: z.number().int().positive("Size must be a positive number"),
+});
+
 module.exports = {
   registerSchema,
   loginSchema,
@@ -148,4 +206,8 @@ module.exports = {
   updateClassSchema,
   createPostSchema,
   updatePostSchema,
+  requestMaterialUploadUrlSchema,
+  confirmMaterialUploadSchema,
+  updateMaterialSchema,
+  requestMaterialReplaceUrlSchema,
 };

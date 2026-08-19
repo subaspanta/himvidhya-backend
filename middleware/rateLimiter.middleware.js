@@ -60,4 +60,27 @@ const writeLimiter = rateLimit({
   },
 });
 
-module.exports = { authLimiter, apiLimiter, refreshLimiter, writeLimiter };
+// D17 "upload" group -- distinct from write-heavy (Engineering Standards
+// §5.4): covers every endpoint that issues a presigned upload URL.
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20,
+  skip: skipInTest,
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      message: "Too many upload requests, please try again later",
+      timestamp: new Date().toISOString(),
+    });
+  },
+});
+
+module.exports = {
+  authLimiter,
+  apiLimiter,
+  refreshLimiter,
+  writeLimiter,
+  uploadLimiter,
+};
