@@ -14,6 +14,7 @@ const classRoutes = require("./routes/class.route.js");
 const userRoutes = require("./routes/user.route.js");
 const { classScopedPostRoutes, postRoutes } = require("./routes/post.route.js");
 const { postScopedCommentRoutes, commentRoutes } = require("./routes/comment.route.js");
+const { classScopedMaterialRoutes, materialRoutes } = require("./routes/material.route.js");
 
 const cookieParser = require("cookie-parser");
 const { getVersionedPath } = require("./config/apiVersion.js");
@@ -73,6 +74,8 @@ app.use(`${apiV1Path}/classes/:classId/posts`, classScopedPostRoutes);
 app.use(`${apiV1Path}/posts`, postRoutes);
 app.use(`${apiV1Path}/posts/:postId/comments`, postScopedCommentRoutes);
 app.use(`${apiV1Path}/comments`, commentRoutes);
+app.use(`${apiV1Path}/classes/:classId/materials`, classScopedMaterialRoutes);
+app.use(`${apiV1Path}/materials`, materialRoutes);
 app.use(`${apiV1Path}/users`, userRoutes);
 
 // 404 handler
