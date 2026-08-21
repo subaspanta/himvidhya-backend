@@ -1,4 +1,11 @@
 const mongoose = require("mongoose");
+const crypto = require("crypto");
+
+// Base36 alphabet -- keeps generated codes visually consistent with the
+// previous Math.random().toString(36) output while sourcing each character
+// from a CSPRNG.
+const JOIN_CODE_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const JOIN_CODE_LENGTH = 8;
 
 const classSchema = new mongoose.Schema(
   {
@@ -63,7 +70,10 @@ classSchema.statics.generateUniqueCode = async function () {
   const maxAttempts = 10;
 
   while (!isUnique && attempts < maxAttempts) {
-    code = Math.random().toString(36).substring(2, 10).toUpperCase();
+    code = Array.from(
+      { length: JOIN_CODE_LENGTH },
+      () => JOIN_CODE_ALPHABET[crypto.randomInt(JOIN_CODE_ALPHABET.length)],
+    ).join("");
     isUnique = !(await this.findOne({ joinCode: code }));
     attempts++;
   }
