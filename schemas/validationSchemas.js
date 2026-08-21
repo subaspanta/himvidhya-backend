@@ -73,6 +73,25 @@ const joinClassSchema = z.object({
     .trim(),
 });
 
+// Matches Class.model.js's own field constraints.
+const createClassSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Class name is required")
+    .max(100, "Class name cannot exceed 100 characters"),
+  description: z
+    .string()
+    .trim()
+    .max(500, "Description cannot exceed 500 characters")
+    .optional(),
+  subject: z
+    .string()
+    .trim()
+    .max(100, "Subject cannot exceed 100 characters")
+    .optional(),
+});
+
 // Matches Class.model.js's own field constraints. All fields optional —
 // a PATCH may touch any subset — but at least one must be present, or
 // there is nothing to update.
@@ -222,6 +241,7 @@ module.exports = {
   emailSchema,
   passwordSchema,
   joinClassSchema,
+  createClassSchema,
   updateClassSchema,
   createPostSchema,
   updatePostSchema,

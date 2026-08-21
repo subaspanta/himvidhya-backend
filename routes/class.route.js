@@ -23,6 +23,7 @@ const { authenticate, authorize } = require("../middleware/auth.middleware.js");
 const validate = require("../middleware/validateRequest.middleware.js");
 const {
   joinClassSchema,
+  createClassSchema,
   updateClassSchema,
 } = require("../schemas/validationSchemas.js");
 
@@ -31,6 +32,7 @@ router.post(
   "/",
   authenticate,
   authorize({ roles: ["teacher"] }),
+  validate(createClassSchema),
   createClassController,
 );
 
