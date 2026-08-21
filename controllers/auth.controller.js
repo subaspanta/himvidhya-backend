@@ -1,8 +1,4 @@
-const {
-  signAccessToken,
-  signRefreshToken,
-  verifyRefreshToken,
-} = require("../config/jwt");
+const { signAccessToken, signRefreshToken } = require("../config/jwt");
 const bcrypt = require("bcryptjs");
 const { logger } = require("../logger.js");
 const {
@@ -11,309 +7,213 @@ const {
   registerUserService,
   resetPasswordService,
   verifyOTPService,
+  logoutUserService,
+  getCurrentUserService,
+  refreshAccessTokenService,
 } = require("../services/auth.service.js");
 const { sendOTPEmail } = require("../utils/email.js");
-const User = require("../models/User.model.js");
 const {
   createdResponse,
   successResponse,
-  errorResponse,
-  conflictResponse,
-  unauthorizedResponse,
 } = require("../utils/responseParser.js");
+const asyncHandler = require("../helpers/asyncHandler.js");
 
-const register = async (req, res, next) => {
-  try {
-    const { name, email, password, role } = req.body;
+const register = asyncHandler(async (req, res) => {
+  const { name, email, password, role } = req.body;
 
-    const { user } = await registerUserService({
-      name,
-      email,
-      password,
-      role,
-    });
+  const { user } = await registerUserService({ name, email, password, role });
 
-    const accessToken = signAccessToken({ userId: user._id, role: user.role });
-    const refreshToken = signRefreshToken({ userId: user._id });
+  const accessToken = signAccessToken({ userId: user._id, role: user.role });
+  const refreshToken = signRefreshToken({ userId: user._id });
 
-    // Store only a hashed version of the refresh token in DB
-    user.refreshToken = await bcrypt.hash(refreshToken, 10);
-    await user.save();
+  // Store only a hashed version of the refresh token in DB
+  user.refreshToken = await bcrypt.hash(refreshToken, 10);
+  await user.save();
 
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-      maxAge: 15 * 60 * 1000, // 15 minutes
-      path: "/",
-    });
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+    maxAge: 15 * 60 * 1000, // 15 minutes
+    path: "/",
+  });
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: "/api/v1/auth/refresh-token",
-    });
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: "/api/v1/auth/refresh-token",
+  });
 
-    logger.info(`User registered: ${email} (ID: ${user._id})`);
+  logger.info(`User registered: ${email} (ID: ${user._id})`);
 
-    return createdResponse(
-      res,
-      { user: user.toJSON() },
-      "User registered successfully",
-    );
-  } catch (error) {
-    if (error.message === "Email already exists") {
-      logger.warn(
-        `Registration failed: ${req.body.email} - Email already exists`,
-      );
-      return conflictResponse(res, error.message);
-    }
-    logger.error(`Registration error for ${req.body.email}: ${error.message}`);
-    next(error);
+  return createdResponse(
+    res,
+    { user: user.toJSON() },
+    "User registered successfully",
+  );
+});
+
+const login = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
+
+  const { user } = await loginUserService({ email, password });
+
+  const accessToken = signAccessToken({ userId: user._id, role: user.role });
+  const refreshToken = signRefreshToken({ userId: user._id });
+
+  // Store only a hashed version of the refresh token in DB
+  user.refreshToken = await bcrypt.hash(refreshToken, 10);
+  await user.save();
+
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+    maxAge: 15 * 60 * 1000, // 15 minutes
+    path: "/",
+  });
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: "/api/v1/auth/refresh-token", // optional hardening
+  });
+
+  return successResponse(res, { user: user.toJSON() }, "Login successful");
+});
+
+const logout = asyncHandler(async (req, res) => {
+  // Cookie options must match exactly with how they were set
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+  };
+
+  res.clearCookie("accessToken", {
+    ...cookieOptions,
+    path: "/",
+  });
+
+  res.clearCookie("refreshToken", {
+    ...cookieOptions,
+    path: "/api/v1/auth/refresh-token",
+  });
+
+  const user = await logoutUserService(req.user?._id);
+  if (user) {
+    logger.info(`User logged out: ${user.email} (ID: ${user._id})`);
   }
-};
 
-const login = async (req, res, next) => {
-  try {
-    const { email, password } = req.body;
+  return successResponse(res, null, "Logged out successfully");
+});
 
-    const { user } = await loginUserService({ email, password });
-
-    const accessToken = signAccessToken({ userId: user._id, role: user.role });
-    const refreshToken = signRefreshToken({ userId: user._id });
-
-    // Store only a hashed version of the refresh token in DB
-    user.refreshToken = await bcrypt.hash(refreshToken, 10);
-    await user.save();
-
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-      maxAge: 15 * 60 * 1000, // 15 minutes
-      path: "/",
-    });
-
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: "/api/v1/auth/refresh-token", // optional hardening
-    });
-
-    return successResponse(res, { user: user.toJSON() }, "Login successful");
-  } catch (error) {
-    if (error.message === "Invalid email or password") {
-      logger.warn(`Login failed: ${req.body.email} - Invalid credentials`);
-      return unauthorizedResponse(res, error.message);
-    }
-    logger.error(`Login error for ${req.body.email}: ${error.message}`);
-    next(error);
+const forgetPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  const otp = await forgetPasswordService(email);
+  if (otp) {
+    await sendOTPEmail(email, otp);
+    logger.info(`Password reset OTP sent to: ${email}`);
+  } else {
+    logger.warn(`Password reset requested for non-existent email: ${email}`);
   }
-};
+  return successResponse(res, null, "If email exists, OTP has been sent");
+});
 
-const logout = async (req, res, next) => {
-  try {
-    // Cookie options must match exactly with how they were set
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-    };
+const verifyOTP = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
 
-    res.clearCookie("accessToken", {
-      ...cookieOptions,
-      path: "/",
-    });
+  const result = await verifyOTPService(email, otp);
 
-    res.clearCookie("refreshToken", {
-      ...cookieOptions,
-      path: "/api/v1/auth/refresh-token",
-    });
+  logger.info(`OTP verified successfully for: ${email}`);
 
-    // Invalidate refresh token in DB
-    if (req.user) {
-      const user = await User.findById(req.user._id);
-      if (user) {
-        user.refreshToken = null;
-        await user.save();
-        logger.info(`User logged out: ${user.email} (ID: ${user._id})`);
-      }
-    }
+  return successResponse(
+    res,
+    { valid: result.valid },
+    "OTP verified successfully",
+  );
+});
 
-    return successResponse(res, null, "Logged out successfully");
-  } catch (error) {
-    logger.error(`Logout error: ${error.message}`);
-    next(error);
-  }
-};
+const resetPassword = asyncHandler(async (req, res) => {
+  const { email, otp, password } = req.body;
 
-const forgetPassword = async (req, res) => {
-  try {
-    const { email } = req.body;
-    const otp = await forgetPasswordService(email);
-    if (otp) {
-      await sendOTPEmail(email, otp);
-      logger.info(`Password reset OTP sent to: ${email}`);
-    } else {
-      logger.warn(`Password reset requested for non-existent email: ${email}`);
-    }
-    return successResponse(res, null, "If email exists, OTP has been sent");
-  } catch (error) {
-    logger.error(
-      `Forget password error for ${req.body.email}: ${error.message}`,
-    );
-    return errorResponse(res, error.message || "Internal server error", 500);
-  }
-};
+  const user = await resetPasswordService(email, otp, password);
 
-const verifyOTP = async (req, res, next) => {
-  try {
-    const { email, otp } = req.body;
+  const accessToken = signAccessToken({ userId: user._id, role: user.role });
+  const refreshToken = signRefreshToken({ userId: user._id });
 
-    const result = await verifyOTPService(email, otp);
+  user.refreshToken = await bcrypt.hash(refreshToken, 10);
+  await user.save();
 
-    logger.info(`OTP verified successfully for: ${email}`);
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+    maxAge: 15 * 60 * 1000, // 15 minutes
+    path: "/",
+  });
 
-    return successResponse(
-      res,
-      { valid: result.valid },
-      "OTP verified successfully",
-    );
-  } catch (error) {
-    if (error.message === "Invalid or expired OTP") {
-      logger.warn(`OTP verification failed for ${req.body.email}`);
-      return errorResponse(res, error.message, 400);
-    }
-    logger.error(`OTP verification error: ${error.message}`);
-    next(error);
-  }
-};
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: "/api/v1/auth/refresh-token",
+  });
 
-const resetPassword = async (req, res, next) => {
-  try {
-    const { email, otp, password } = req.body;
+  logger.info(
+    `Password reset successful for user: ${user.email} (ID: ${user._id})`,
+  );
 
-    const user = await resetPasswordService(email, otp, password);
+  return successResponse(
+    res,
+    { user: user.toJSON() },
+    "Password updated successfully",
+  );
+});
 
-    const accessToken = signAccessToken({ userId: user._id, role: user.role });
-    const refreshToken = signRefreshToken({ userId: user._id });
+const getCurrentUser = asyncHandler(async (req, res) => {
+  const user = await getCurrentUserService(req.user?._id);
 
-    user.refreshToken = await bcrypt.hash(refreshToken, 10);
-    await user.save();
+  logger.info(`[AUTH] getCurrentUser - userId: ${user._id}`);
 
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-      maxAge: 15 * 60 * 1000, // 15 minutes
-      path: "/",
-    });
+  const userDTO = {
+    id: user._id.toString(),
+    name: user.name,
+    email: user.email,
+    avatar: user.avatar,
+    role: user.role,
+    isActive: user.isActive,
+    meta: {
+      isVerified: user.isVerified,
+    },
+  };
 
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: "/api/v1/auth/refresh-token",
-    });
+  return successResponse(res, userDTO, "User retrieved successfully");
+});
 
-    logger.info(
-      `Password reset successful for user: ${user.email} (ID: ${user._id})`,
-    );
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  const user = await refreshAccessTokenService(req.cookies.refreshToken);
 
-    return successResponse(
-      res,
-      { user: user.toJSON() },
-      "Password updated successfully",
-    );
-  } catch (error) {
-    if (error.message === "Invalid or expired OTP") {
-      logger.warn(`Password reset failed: Invalid or expired OTP`);
-      return errorResponse(res, error.message, 400);
-    }
-    logger.error(`Password reset error: ${error.message}`);
-    next(error);
-  }
-};
+  const newAccessToken = signAccessToken({
+    userId: user._id,
+    role: user.role,
+  });
 
-const getCurrentUser = async (req, res) => {
-  try {
-    const userId = req.user?._id;
+  res.cookie("accessToken", newAccessToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+    maxAge: 15 * 60 * 1000,
+    path: "/",
+  });
 
-    if (!userId) {
-      return unauthorizedResponse(res, "Unauthorized");
-    }
-
-    const user = await User.findById(userId).select(
-      "_id name email avatar role isVerified isActive",
-    );
-
-    if (!user) {
-      return unauthorizedResponse(res, "User not found");
-    }
-
-    logger.info(`[AUTH] getCurrentUser - userId: ${user._id}`);
-
-    const userDTO = {
-      id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar,
-      role: user.role,
-      isActive: user.isActive,
-      meta: {
-        isVerified: user.isVerified,
-      },
-    };
-
-    return successResponse(res, userDTO, "User retrieved successfully");
-  } catch (error) {
-    logger.error(`[AUTH] getCurrentUser error: ${error.message}`);
-    return errorResponse(res, "Failed to fetch user", 500);
-  }
-};
-
-const refreshAccessToken = async (req, res) => {
-  try {
-    const token = req.cookies.refreshToken;
-    if (!token) {
-      return unauthorizedResponse(res, "Refresh token missing");
-    }
-
-    const payload = verifyRefreshToken(token);
-
-    const user = await User.findById(payload.userId);
-    if (!user || !user.refreshToken) {
-      return unauthorizedResponse(res, "Invalid refresh token");
-    }
-
-    const isMatch = await bcrypt.compare(token, user.refreshToken);
-    if (!isMatch) {
-      return unauthorizedResponse(res, "Invalid refresh token");
-    }
-
-    const newAccessToken = signAccessToken({
-      userId: user._id,
-      role: user.role,
-    });
-
-    res.cookie("accessToken", newAccessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
-      maxAge: 15 * 60 * 1000,
-      path: "/",
-    });
-
-    return successResponse(res, null, "Access token refreshed");
-  } catch {
-    return unauthorizedResponse(res, "Refresh token expired or invalid");
-  }
-};
+  return successResponse(res, null, "Access token refreshed");
+});
 
 module.exports = {
   register,

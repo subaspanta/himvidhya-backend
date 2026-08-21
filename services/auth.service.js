@@ -1,11 +1,16 @@
 const User = require("../models/User.model.js");
 const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 const {
   ConflictError,
   AuthenticationError,
 } = require("../utils/error/errors.js");
 const jwt = require("jsonwebtoken");
-const { jwtSecret, jwtExpiresIn } = require("../config/jwt");
+const {
+  jwtSecret,
+  jwtExpiresIn,
+  verifyRefreshToken,
+} = require("../config/jwt");
 
 function hashOTP(otp) {
   return crypto.createHash("sha256").update(otp).digest("hex");
@@ -99,6 +104,53 @@ const resetPasswordService = async (email, otp, newPassword) => {
   return user;
 };
 
+const logoutUserService = async (userId) => {
+  if (!userId) return null;
+
+  const user = await User.findById(userId);
+  if (!user) return null;
+
+  user.refreshToken = null;
+  await user.save();
+
+  return user;
+};
+
+const getCurrentUserService = async (userId) => {
+  if (!userId) throw new AuthenticationError("Unauthorized");
+
+  const user = await User.findById(userId).select(
+    "_id name email avatar role isVerified isActive",
+  );
+
+  if (!user) throw new AuthenticationError("User not found");
+
+  return user;
+};
+
+const refreshAccessTokenService = async (token) => {
+  if (!token) throw new AuthenticationError("Refresh token missing");
+
+  let payload;
+  try {
+    payload = verifyRefreshToken(token);
+  } catch {
+    throw new AuthenticationError("Refresh token expired or invalid");
+  }
+
+  const user = await User.findById(payload.userId);
+  if (!user || !user.refreshToken) {
+    throw new AuthenticationError("Invalid refresh token");
+  }
+
+  const isMatch = await bcrypt.compare(token, user.refreshToken);
+  if (!isMatch) {
+    throw new AuthenticationError("Invalid refresh token");
+  }
+
+  return user;
+};
+
 module.exports = {
   registerUserService,
   loginUserService,
@@ -106,4 +158,7 @@ module.exports = {
   verifyOTPService,
   resetPasswordService,
   generateAccessToken,
+  logoutUserService,
+  getCurrentUserService,
+  refreshAccessTokenService,
 };
