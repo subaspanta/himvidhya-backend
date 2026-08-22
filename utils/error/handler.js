@@ -50,7 +50,7 @@ const fallbackLog = (err) => {
 const HandleErrorWithLogger = (err, req, res, _next) => {
   let reportError = true;
   let status = 500;
-  let message = err.message || "Internal server error";
+  let message = "Internal server error";
 
   const knownErrors = [
     NotFoundError,
@@ -67,6 +67,7 @@ const HandleErrorWithLogger = (err, req, res, _next) => {
     if (err instanceof ErrorType) {
       reportError = false;
       status = err.status;
+      message = err.message;
     }
   });
 
