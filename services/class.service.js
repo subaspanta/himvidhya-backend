@@ -17,6 +17,11 @@ const {
   ownerIdOf,
 } = require("./guards/class.guards.js");
 
+// Generous ceiling for a classroom LMS's roster/join-queue/class-list sizes
+// -- high enough to never trip in normal use, low enough to stop a
+// pathological response.
+const SAFETY_LIMIT = 500;
+
 // Card DTO shared by every class-returning endpoint: GET /classes, GET
 // /classes/:id (extended with membersCount below), and all five
 // class-mutation endpoints. Single source of truth for the wire shape so a
@@ -263,6 +268,7 @@ const getTeacherJoinRequestsService = async (teacherId) => {
     .populate("user", "name email avatar")
     .populate("class", "name subject")
     .sort({ createdAt: -1 })
+    .limit(SAFETY_LIMIT)
     .lean();
 
   return requests;
@@ -305,6 +311,7 @@ const getMyClassesService = async (userId) => {
     )
     .populate("owner", "name email avatar role")
     .sort({ createdAt: -1 })
+    .limit(SAFETY_LIMIT)
     .lean();
 
   if (classes.length === 0) {
@@ -377,6 +384,7 @@ const getClassMembersService = async (classId, userId) => {
   })
     .populate("userId", "name email avatar role")
     .sort({ joinedAt: 1 })
+    .limit(SAFETY_LIMIT)
     .lean();
 
   const members = memberRows.map((row) => ({
