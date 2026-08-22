@@ -5,26 +5,10 @@ const {
   ConflictError,
   AuthenticationError,
 } = require("../utils/error/errors.js");
-const jwt = require("jsonwebtoken");
-const {
-  jwtSecret,
-  jwtExpiresIn,
-  verifyRefreshToken,
-} = require("../config/jwt");
+const { verifyRefreshToken } = require("../config/jwt");
 
 function hashOTP(otp) {
   return crypto.createHash("sha256").update(otp).digest("hex");
-}
-
-function generateAccessToken(user) {
-  return jwt.sign(
-    {
-      userId: user._id,
-      role: user.role,
-    },
-    jwtSecret,
-    { expiresIn: jwtExpiresIn },
-  );
 }
 
 const registerUserService = async ({ name, email, password, role }) => {
@@ -157,7 +141,6 @@ module.exports = {
   forgetPasswordService,
   verifyOTPService,
   resetPasswordService,
-  generateAccessToken,
   logoutUserService,
   getCurrentUserService,
   refreshAccessTokenService,
