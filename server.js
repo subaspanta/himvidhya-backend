@@ -17,6 +17,7 @@ const { postScopedCommentRoutes, commentRoutes } = require("./routes/comment.rou
 const { classScopedMaterialRoutes, materialRoutes } = require("./routes/material.route.js");
 
 const cookieParser = require("cookie-parser");
+const { apiLimiter } = require("./middleware/rateLimiter.middleware.js");
 const { getVersionedPath } = require("./config/apiVersion.js");
 
 dotenv.config();
@@ -34,6 +35,7 @@ app.use(
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ limit: "10mb", extended: true }));
+app.use(apiLimiter);
 
 function getDbStatus() {
   const state = mongoose.connection.readyState;

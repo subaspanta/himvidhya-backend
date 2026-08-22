@@ -25,6 +25,7 @@ const authLimiter = rateLimit({
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // 100 requests per windowMs
+  skip: skipInTest,
   standardHeaders: true,
   legacyHeaders: false,
   handler: (req, res) => {
@@ -41,10 +42,7 @@ const refreshLimiter = rateLimit({
   skip: skipInTest,
 });
 
-// D17 "write-heavy" group. Not apiLimiter -- that one is unmounted anywhere
-// today and lacks skipInTest, so reusing it as-is would throttle the
-// --runInBand integration suite the same way authLimiter's own comment
-// above already flags as a hazard.
+// D17 "write-heavy" group.
 const writeLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 30,
