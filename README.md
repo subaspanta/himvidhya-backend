@@ -31,6 +31,17 @@ CLIENT_URL=http://localhost:3000
 
 See `.env.example` for the full list, including object storage and Sentry variables consumed by later phases.
 
+## Available Scripts
+
+- `npm run dev` - Start with nodemon (auto-restart)
+- `npm start` - Start production server
+- `npm test` - Run Jest test suite (`--runInBand`)
+- `npm run lint` - Run ESLint
+- `npm run typecheck` - Run TypeScript type checks (JSDoc/type-checked JS)
+- `npm run audit:deps` - Run npm audit with high severity threshold
+- `npm run outdated:deps` - Show outdated dependencies
+- `npm run health:deps` - Run audit + outdated checks
+
 ## Running with Docker Compose
 
 ```bash
