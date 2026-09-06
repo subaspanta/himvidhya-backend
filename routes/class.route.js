@@ -1,7 +1,7 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
-const {
+import {
   createClassController,
   joinClassController,
   approveJoinRequestController,
@@ -17,15 +17,15 @@ const {
   getClassMembersController,
   leaveClassController,
   removeClassMemberController,
-} = require("../controllers/class.controller");
+} from "../controllers/class.controller.js";
 
-const { authenticate, authorize } = require("../middleware/auth.middleware.js");
-const validate = require("../middleware/validateRequest.middleware.js");
-const {
+import { authenticate, authorize } from "../middleware/auth.middleware.js";
+import validate from "../middleware/validateRequest.middleware.js";
+import {
   joinClassSchema,
   createClassSchema,
   updateClassSchema,
-} = require("../schemas/validationSchemas.js");
+} from "../schemas/validationSchemas.js";
 
 // Class CRUD
 router.post(
@@ -123,4 +123,4 @@ router.delete(
 );
 
 router.get("/:id", authenticate, getClassByIdController);
-module.exports = router;
+export default router;

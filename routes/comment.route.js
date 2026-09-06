@@ -3,23 +3,25 @@
 // path) is visible inside its handlers, mirroring post.route.js's
 // classScopedPostRoutes. commentRoutes (top-level /comments/:commentId)
 // doesn't need it, since :commentId is defined in its own route patterns.
-const express = require("express");
+import express from "express";
+
 const postScopedCommentRoutes = express.Router({ mergeParams: true });
 const commentRoutes = express.Router();
 
-const {
+import {
   createCommentController,
   listCommentsController,
   updateCommentController,
   deleteCommentController,
-} = require("../controllers/comment.controller.js");
-const { authenticate } = require("../middleware/auth.middleware.js");
-const validate = require("../middleware/validateRequest.middleware.js");
-const { writeLimiter } = require("../middleware/rateLimiter.middleware.js");
-const {
+} from "../controllers/comment.controller.js";
+
+import { authenticate } from "../middleware/auth.middleware.js";
+import validate from "../middleware/validateRequest.middleware.js";
+import { writeLimiter } from "../middleware/rateLimiter.middleware.js";
+import {
   createCommentSchema,
   updateCommentSchema,
-} = require("../schemas/validationSchemas.js");
+} from "../schemas/validationSchemas.js";
 
 // -- mounted at ${apiV1Path}/posts/:postId/comments --
 // No authorize({roles}) -- both teacher and active student may comment
@@ -42,4 +44,4 @@ commentRoutes.patch(
 );
 commentRoutes.delete("/:commentId", authenticate, deleteCommentController);
 
-module.exports = { postScopedCommentRoutes, commentRoutes };
+export { postScopedCommentRoutes, commentRoutes };

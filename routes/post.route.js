@@ -10,11 +10,12 @@
 // (defined only in the *mount* path, not in this router's own patterns) is
 // visible inside its handlers; postRoutes doesn't need it, since :postId is
 // defined directly in its own route patterns.
-const express = require("express");
+import express from "express";
+
 const classScopedPostRoutes = express.Router({ mergeParams: true });
 const postRoutes = express.Router();
 
-const {
+import {
   createPostController,
   listPostsController,
   getPostByIdController,
@@ -22,14 +23,15 @@ const {
   deletePostController,
   pinPostController,
   unpinPostController,
-} = require("../controllers/post.controller.js");
-const { authenticate, authorize } = require("../middleware/auth.middleware.js");
-const validate = require("../middleware/validateRequest.middleware.js");
-const { writeLimiter } = require("../middleware/rateLimiter.middleware.js");
-const {
+} from "../controllers/post.controller.js";
+
+import { authenticate, authorize } from "../middleware/auth.middleware.js";
+import validate from "../middleware/validateRequest.middleware.js";
+import { writeLimiter } from "../middleware/rateLimiter.middleware.js";
+import {
   createPostSchema,
   updatePostSchema,
-} = require("../schemas/validationSchemas.js");
+} from "../schemas/validationSchemas.js";
 
 // -- mounted at ${apiV1Path}/classes/:classId/posts --
 classScopedPostRoutes.post(
@@ -70,4 +72,4 @@ postRoutes.delete(
   unpinPostController,
 );
 
-module.exports = { classScopedPostRoutes, postRoutes };
+export { classScopedPostRoutes, postRoutes };

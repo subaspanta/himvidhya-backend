@@ -1,11 +1,12 @@
 // Two-router split, same shape as post.route.js: class-scoped routes need
 // { mergeParams: true } to see :classId from the mount path; top-level
 // material routes define :materialId in their own patterns.
-const express = require("express");
+import express from "express";
+
 const classScopedMaterialRoutes = express.Router({ mergeParams: true });
 const materialRoutes = express.Router();
 
-const {
+import {
   requestMaterialUploadUrlController,
   confirmMaterialUploadController,
   listMaterialsController,
@@ -14,16 +15,18 @@ const {
   updateMaterialController,
   requestMaterialReplaceUrlController,
   deleteMaterialController,
-} = require("../controllers/material.controller.js");
-const { authenticate, authorize } = require("../middleware/auth.middleware.js");
-const validate = require("../middleware/validateRequest.middleware.js");
-const { uploadLimiter } = require("../middleware/rateLimiter.middleware.js");
-const {
+} from "../controllers/material.controller.js";
+
+import { authenticate, authorize } from "../middleware/auth.middleware.js";
+import validate from "../middleware/validateRequest.middleware.js";
+import { uploadLimiter } from "../middleware/rateLimiter.middleware.js";
+
+import {
   requestMaterialUploadUrlSchema,
   confirmMaterialUploadSchema,
   updateMaterialSchema,
   requestMaterialReplaceUrlSchema,
-} = require("../schemas/validationSchemas.js");
+} from "../schemas/validationSchemas.js";
 
 // -- mounted at ${apiV1Path}/classes/:classId/materials --
 classScopedMaterialRoutes.post(
@@ -72,4 +75,4 @@ materialRoutes.delete(
   deleteMaterialController,
 );
 
-module.exports = { classScopedMaterialRoutes, materialRoutes };
+export { classScopedMaterialRoutes, materialRoutes };

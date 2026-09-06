@@ -1,5 +1,5 @@
-const { z } = require("zod");
-const { PASSWORD_RULES } = require("../config/passwordRules.js");
+import { z } from "zod";
+import { PASSWORD_RULES } from "../config/passwordRules.js";
 
 const emailSchema = z
   .string()
@@ -232,7 +232,7 @@ const requestMaterialReplaceUrlSchema = z.object({
   size: z.number().int().positive("Size must be a positive number"),
 });
 
-module.exports = {
+export {
   registerSchema,
   loginSchema,
   forgetPasswordSchema,

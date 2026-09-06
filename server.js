@@ -1,29 +1,37 @@
-const dotenv = require("dotenv");
-const express = require("express");
-const cors = require("cors");
-const mongoose = require("mongoose");
-const connectDB = require("./config/database.js");
-const {
+import dotenv from "dotenv";
+import express from "express";
+import cors from "cors";
+import mongoose from "mongoose";
+import connectDB from "./config/database.js";
+
+import {
   HandleErrorWithLogger,
   HandleUnCaughtException,
   HandleUnhandledRejection,
   handleNotFound,
-} = require("./utils/error");
-const authRoutes = require("./routes/auth.route.js");
-const classRoutes = require("./routes/class.route.js");
-const userRoutes = require("./routes/user.route.js");
-const { classScopedPostRoutes, postRoutes } = require("./routes/post.route.js");
-const { postScopedCommentRoutes, commentRoutes } = require("./routes/comment.route.js");
-const { classScopedMaterialRoutes, materialRoutes } = require("./routes/material.route.js");
+} from "./utils/error/index.js";
 
-const cookieParser = require("cookie-parser");
-const { apiLimiter } = require("./middleware/rateLimiter.middleware.js");
-const { getVersionedPath } = require("./config/apiVersion.js");
+import authRoutes from "./routes/auth.route.js";
+import classRoutes from "./routes/class.route.js";
+import { classScopedPostRoutes, postRoutes } from "./routes/post.route.js";
+import {
+  postScopedCommentRoutes,
+  commentRoutes,
+} from "./routes/comment.route.js";
+import {
+  classScopedMaterialRoutes,
+  materialRoutes,
+} from "./routes/material.route.js";
+import userRoutes from "./routes/user.route.js";
+
+import cookieParser from "cookie-parser";
+import { apiLimiter } from "./middleware/rateLimiter.middleware.js";
+import { getVersionedPath } from "./config/apiVersion.js";
 
 dotenv.config();
 
 const app = express();
-const helmet = require("helmet");
+import helmet from "helmet";
 
 app.use(helmet());
 app.use(
@@ -123,8 +131,8 @@ async function startServer() {
   }
 }
 
-if (require.main === module) {
+if (process.argv[1] === new URL(import.meta.url).pathname) {
   startServer();
 }
 
-module.exports = app;
+export default app;

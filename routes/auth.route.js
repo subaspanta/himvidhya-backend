@@ -1,5 +1,6 @@
-const express = require("express");
-const {
+import express from "express";
+
+import {
   register,
   login,
   logout,
@@ -8,20 +9,19 @@ const {
   resetPassword,
   getCurrentUser,
   refreshAccessToken,
-} = require("../controllers/auth.controller.js");
-const { authenticate } = require("../middleware/auth.middleware.js");
-const {
-  authLimiter,
-  refreshLimiter,
-} = require("../middleware/rateLimiter.middleware.js");
-const validate = require("../middleware/validateRequest.middleware.js");
-const {
+} from "../controllers/auth.controller.js";
+
+import {authenticate} from "../middleware/auth.middleware.js";
+import {authLimiter, refreshLimiter} from "../middleware/rateLimiter.middleware.js";
+import validate from "../middleware/validateRequest.middleware.js";
+
+import {
   registerSchema,
   loginSchema,
   forgetPasswordSchema,
   verifyOTPSchema,
   resetPasswordSchema,
-} = require("../schemas/validationSchemas.js");
+} from "../schemas/validationSchemas.js";
 
 const router = express.Router();
 
@@ -45,4 +45,4 @@ router.post(
 
 router.get("/me", authenticate, getCurrentUser);
 
-module.exports = router;
+export default router;
