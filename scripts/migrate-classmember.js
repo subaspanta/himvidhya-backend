@@ -15,10 +15,13 @@
  * and safe to re-run after a partial failure.
  */
 
-const fs = require("fs");
-const path = require("path");
-const mongoose = require("mongoose");
-const dotenv = require("dotenv");
+import fs from "fs";
+import path from "path";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+
+const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 
 dotenv.config();
 
@@ -35,9 +38,12 @@ const id = (value) => (value == null ? null : String(value));
 async function buildPlan(db) {
   const classes = await db.collection(CLASSES).find({}).toArray();
   const userIds = new Set(
-    (await db.collection(USERS).find({}, { projection: { _id: 1 } }).toArray()).map(
-      (u) => id(u._id),
-    ),
+    (
+      await db
+        .collection(USERS)
+        .find({}, { projection: { _id: 1 } })
+        .toArray()
+    ).map((u) => id(u._id)),
   );
 
   const operations = [];
@@ -59,7 +65,11 @@ async function buildPlan(db) {
 
       if (userId == null) {
         orphanSkips += 1;
-        orphans.push({ classId: id(cls._id), userId, reason: "missing user ref" });
+        orphans.push({
+          classId: id(cls._id),
+          userId,
+          reason: "missing user ref",
+        });
         continue;
       }
 
@@ -74,7 +84,11 @@ async function buildPlan(db) {
 
       if (!userIds.has(userId)) {
         orphanSkips += 1;
-        orphans.push({ classId: id(cls._id), userId, reason: "user not found" });
+        orphans.push({
+          classId: id(cls._id),
+          userId,
+          reason: "user not found",
+        });
         continue;
       }
 
@@ -159,7 +173,10 @@ async function backupCollections(db, outDir) {
 async function verifyMigration(db) {
   const classes = await db.collection(CLASSES).find({}).toArray();
   const members = await db.collection(CLASS_MEMBERS).find({}).toArray();
-  const users = await db.collection(USERS).find({}, { projection: { _id: 1 } }).toArray();
+  const users = await db
+    .collection(USERS)
+    .find({}, { projection: { _id: 1 } })
+    .toArray();
 
   const classById = new Map(classes.map((c) => [id(c._id), c]));
   const userIds = new Set(users.map((u) => id(u._id)));
@@ -286,7 +303,9 @@ async function verifyMigration(db) {
   // 6. Spot check up to three classes: the migrated roster must equal the
   //    embedded array minus the owner and minus orphans.
   const spotFailures = [];
-  const spotSample = classes.filter((c) => Array.isArray(c.members)).slice(0, 3);
+  const spotSample = classes
+    .filter((c) => Array.isArray(c.members))
+    .slice(0, 3);
   for (const cls of spotSample) {
     const ownerId = id(cls.owner);
     const expected = cls.members
@@ -340,7 +359,9 @@ function printVerification(result) {
       console.log(`      ${JSON.stringify(check.details, null, 2)}`);
     }
   }
-  console.log(`\n${result.passed ? "All six checks passed." : "Verification FAILED."}`);
+  console.log(
+    `\n${result.passed ? "All six checks passed." : "Verification FAILED."}`,
+  );
 }
 
 async function main() {
@@ -368,7 +389,7 @@ async function main() {
   try {
     if (mode === "backup") {
       const outDir = path.join(
-        __dirname,
+        scriptDirectory,
         "..",
         "backups",
         `pre-classmember-${new Date().toISOString().replace(/[:.]/g, "-")}`,
@@ -406,11 +427,11 @@ async function main() {
   process.exit(exitCode);
 }
 
-if (require.main === module) {
+if (process.argv[1] === new URL(import.meta.url).pathname) {
   main();
 }
 
-module.exports = {
+export {
   buildPlan,
   applyPlan,
   backupCollections,
