@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const joinRequestSchema = new mongoose.Schema(
   {
@@ -47,4 +47,4 @@ joinRequestSchema.index({ user: 1, status: 1 });
 // Check if a request already exists from this user for this class
 joinRequestSchema.index({ class: 1, user: 1 });
 
-module.exports = mongoose.model("JoinRequest", joinRequestSchema);
+export default mongoose.model("JoinRequest", joinRequestSchema);

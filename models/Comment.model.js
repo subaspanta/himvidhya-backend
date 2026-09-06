@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 // Flat comments only (Domain Model §3.6 — no parent reference, no nesting).
 // No classId field: the owning class is always reached via postId -> Post.classId,
@@ -38,4 +38,4 @@ const commentSchema = new mongoose.Schema(
 // not a reverse-chron feed), so the compound sort is ascending, unlike Post's.
 commentSchema.index({ postId: 1, createdAt: 1, _id: 1 });
 
-module.exports = mongoose.model("Comment", commentSchema);
+export default mongoose.model("Comment", commentSchema);

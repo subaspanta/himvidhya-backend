@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 // Student-only membership. The class owner is never a ClassMember document —
 // ownership is read from Class.owner.
@@ -35,4 +35,4 @@ classMemberSchema.index({ userId: 1, status: 1 });
 // A class's roster
 classMemberSchema.index({ classId: 1, status: 1 });
 
-module.exports = mongoose.model("ClassMember", classMemberSchema);
+export default mongoose.model("ClassMember", classMemberSchema);

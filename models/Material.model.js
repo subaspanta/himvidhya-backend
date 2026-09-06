@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 // Metadata only -- file bytes live in S3-compatible object storage,
 // transferred by presigned URL (ADR-0005). Unlike Post/Comment, Material
@@ -56,4 +56,4 @@ const materialSchema = new mongoose.Schema(
 // Serves the material list pagination query.
 materialSchema.index({ classId: 1, createdAt: -1, _id: -1 });
 
-module.exports = mongoose.model("Material", materialSchema);
+export default mongoose.model("Material", materialSchema);

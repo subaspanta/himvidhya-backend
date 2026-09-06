@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const crypto = require("crypto");
+import mongoose from "mongoose";
+import crypto from "crypto";
 
 // Base36 alphabet -- keeps generated codes visually consistent with the
 // previous Math.random().toString(36) output while sourcing each character
@@ -87,4 +87,4 @@ classSchema.statics.generateUniqueCode = async function () {
   return code;
 };
 
-module.exports = mongoose.model("Class", classSchema);
+export default mongoose.model("Class", classSchema);

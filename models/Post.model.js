@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 // D4: no attachments field -- file upload is a Materials-phase concern with
 // its own storage client, not built yet. D3: content is plain text -- the
@@ -48,4 +48,4 @@ const postSchema = new mongoose.Schema(
 // ({ classId, isPinned: true, deletedAt: null }).
 postSchema.index({ classId: 1, isPinned: 1, createdAt: -1, _id: -1 });
 
-module.exports = mongoose.model("Post", postSchema);
+export default mongoose.model("Post", postSchema);
