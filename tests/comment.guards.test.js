@@ -1,13 +1,9 @@
-const mongoose = require("mongoose");
-const { MongoMemoryServer } = require("mongodb-memory-server");
-
-const Comment = require("../models/Comment.model.js");
-const User = require("../models/User.model.js");
-const {
-  loadCommentOrThrow,
-  assertCommentAuthor,
-} = require("../services/guards/comment.guards.js");
-const { ForbiddenError, NotFoundError } = require("../utils/error/errors.js");
+import mongoose from "mongoose";
+import {MongoMemoryServer} from "mongodb-memory-server";
+import Comment from "../models/Comment.model.js";
+import User from "../models/User.model.js";
+import {loadCommentOrThrow, assertCommentAuthor} from "../services/guards/comment.guards.js";
+import {ForbiddenError, NotFoundError} from "../utils/error/errors.js";
 
 let mongod;
 let author;

@@ -1,13 +1,14 @@
-const {
+import {
   encodeCursor,
   decodeCursor,
   buildCursorQuery,
   clampLimit,
   buildPageMeta,
   MAX_PAGE_SIZE,
-} = require("../utils/cursor.js");
-const { UnprocessableEntityError } = require("../utils/error/errors.js");
-const mongoose = require("mongoose");
+} from "../utils/cursor.js";
+
+import {UnprocessableEntityError} from "../utils/error/errors.js";
+import mongoose from "mongoose";
 
 describe("cursor utility", () => {
   describe("encodeCursor / decodeCursor", () => {

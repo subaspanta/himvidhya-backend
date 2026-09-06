@@ -1,6 +1,6 @@
-const mongoose = require("mongoose");
-const { MongoMemoryServer } = require("mongodb-memory-server");
-const Post = require("../models/Post.model.js");
+import mongoose from "mongoose";
+import {MongoMemoryServer} from "mongodb-memory-server";
+import Post from "../models/Post.model.js";
 
 let mongod;
 

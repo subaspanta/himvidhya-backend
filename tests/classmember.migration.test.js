@@ -1,10 +1,11 @@
-const mongoose = require("mongoose");
-const { MongoMemoryServer } = require("mongodb-memory-server");
-const fs = require("fs");
-const os = require("os");
-const path = require("path");
-const ClassMember = require("../models/ClassMember.model.js");
-const {
+import mongoose from "mongoose";
+import {MongoMemoryServer} from "mongodb-memory-server";
+import fs from "fs";
+import os from "os";
+import path from "path";
+import ClassMember from "../models/ClassMember.model.js";
+
+import {
   buildPlan,
   applyPlan,
   backupCollections,
@@ -12,7 +13,7 @@ const {
   CLASSES,
   CLASS_MEMBERS,
   USERS,
-} = require("../scripts/migrate-classmember.js");
+} from "../scripts/migrate-classmember.js";
 
 let mongod;
 

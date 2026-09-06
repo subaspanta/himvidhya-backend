@@ -1,16 +1,17 @@
-const mongoose = require("mongoose");
-const { MongoMemoryServer } = require("mongodb-memory-server");
+import mongoose from "mongoose";
+import {MongoMemoryServer} from "mongodb-memory-server";
+import Class from "../models/Class.model.js";
+import ClassMember from "../models/ClassMember.model.js";
+import User from "../models/User.model.js";
 
-const Class = require("../models/Class.model.js");
-const ClassMember = require("../models/ClassMember.model.js");
-const User = require("../models/User.model.js");
-const {
+import {
   loadClassOrThrow,
   assertActiveMember,
   assertClassOwner,
   assertClassWritable,
-} = require("../services/guards/class.guards.js");
-const { ForbiddenError, NotFoundError } = require("../utils/error/errors.js");
+} from "../services/guards/class.guards.js";
+
+import {ForbiddenError, NotFoundError} from "../utils/error/errors.js";
 
 let mongod;
 let owner;

@@ -1,10 +1,9 @@
-const mongoose = require("mongoose");
-const { MongoMemoryServer } = require("mongodb-memory-server");
-
-const Material = require("../models/Material.model.js");
-const User = require("../models/User.model.js");
-const { loadMaterialOrThrow } = require("../services/guards/material.guards.js");
-const { NotFoundError } = require("../utils/error/errors.js");
+import mongoose from "mongoose";
+import {MongoMemoryServer} from "mongodb-memory-server";
+import Material from "../models/Material.model.js";
+import User from "../models/User.model.js";
+import {loadMaterialOrThrow} from "../services/guards/material.guards.js";
+import {NotFoundError} from "../utils/error/errors.js";
 
 let mongod;
 let uploader;
