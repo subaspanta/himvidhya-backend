@@ -20,8 +20,4 @@ const isVersionSupported = (version) => {
   return API_VERSION.SUPPORTED.includes(version);
 };
 
-module.exports = {
-  API_VERSION,
-  getVersionedPath,
-  isVersionSupported,
-};
+export { API_VERSION, getVersionedPath, isVersionSupported };

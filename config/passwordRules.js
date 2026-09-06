@@ -30,7 +30,4 @@ const getPasswordRequirements = () => ({
   description: "Password must meet all requirements above",
 });
 
-module.exports = {
-  PASSWORD_RULES,
-  getPasswordRequirements,
-};
+export { PASSWORD_RULES, getPasswordRequirements };

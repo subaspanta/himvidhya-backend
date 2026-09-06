@@ -16,4 +16,4 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg", // .jpg, .jpeg
 ]);
 
-module.exports = { MAX_MATERIAL_SIZE_BYTES, ALLOWED_MIME_TYPES };
+export { MAX_MATERIAL_SIZE_BYTES, ALLOWED_MIME_TYPES };

@@ -19,14 +19,15 @@
  * an actual storage operation does.
  */
 
-const {
+import {
   S3Client,
   HeadObjectCommand,
   PutObjectCommand,
   GetObjectCommand,
   DeleteObjectCommand,
-} = require("@aws-sdk/client-s3");
-const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+} from "@aws-sdk/client-s3";
+
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const REQUIRED_ENV_VARS = [
   "S3_ENDPOINT",
@@ -85,7 +86,10 @@ function getBucket() {
   return process.env.S3_BUCKET;
 }
 
-const presignPut = async (key, { contentType, expiresIn = UPLOAD_URL_EXPIRY_SECONDS } = {}) => {
+const presignPut = async (
+  key,
+  { contentType, expiresIn = UPLOAD_URL_EXPIRY_SECONDS } = {},
+) => {
   const command = new PutObjectCommand({
     Bucket: getBucket(),
     Key: key,
@@ -94,7 +98,10 @@ const presignPut = async (key, { contentType, expiresIn = UPLOAD_URL_EXPIRY_SECO
   return getSignedUrl(getPublicClient(), command, { expiresIn });
 };
 
-const presignGet = async (key, { expiresIn = DOWNLOAD_URL_EXPIRY_SECONDS } = {}) => {
+const presignGet = async (
+  key,
+  { expiresIn = DOWNLOAD_URL_EXPIRY_SECONDS } = {},
+) => {
   const command = new GetObjectCommand({ Bucket: getBucket(), Key: key });
   return getSignedUrl(getPublicClient(), command, { expiresIn });
 };
@@ -121,10 +128,4 @@ const deleteObject = async (key) => {
   );
 };
 
-module.exports = {
-  presignPut,
-  presignGet,
-  headObject,
-  deleteObject,
-  assertStorageEnv,
-};
+export { presignPut, presignGet, headObject, deleteObject, assertStorageEnv };
