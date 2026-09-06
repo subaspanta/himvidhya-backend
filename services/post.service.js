@@ -1,23 +1,25 @@
-const Post = require("../models/Post.model.js");
-const {
+import Post from "../models/Post.model.js";
+import {
   ConflictError,
   BadRequestError,
   UnprocessableEntityError,
-} = require("../utils/error/errors.js");
-const {
+} from "../utils/error/errors.js";
+
+import {
   loadClassOrThrow,
   assertClassOwner,
   assertActiveMember,
   assertClassWritable,
-} = require("./guards/class.guards.js");
-const { loadPostOrThrow, assertPostAuthor } = require("./guards/post.guards.js");
-const {
+} from "./guards/class.guards.js";
+
+import { loadPostOrThrow, assertPostAuthor } from "./guards/post.guards.js";
+import {
   encodeCursor,
   decodeCursor,
   buildCursorQuery,
   clampLimit,
   buildPageMeta,
-} = require("../utils/cursor.js");
+} from "../utils/cursor.js";
 
 const DEFAULT_POST_PAGE_SIZE = 20; // D14 per-resource default
 const MAX_PINNED_POSTS_PER_CLASS = 3; // I5
@@ -230,7 +232,7 @@ const unpinPostService = async (postId, userId) => {
   return post;
 };
 
-module.exports = {
+export {
   createPostService,
   listPostsFeedService,
   getPostByIdService,

@@ -1,24 +1,26 @@
-const Comment = require("../models/Comment.model.js");
-const { ConflictError, BadRequestError } = require("../utils/error/errors.js");
-const {
+import Comment from "../models/Comment.model.js";
+import { ConflictError, BadRequestError } from "../utils/error/errors.js";
+
+import {
   loadClassOrThrow,
   assertClassOwner,
   assertActiveMember,
   assertClassWritable,
-} = require("./guards/class.guards.js");
-const { loadPostOrThrow } = require("./guards/post.guards.js");
-const {
+} from "./guards/class.guards.js";
+
+import { loadPostOrThrow } from "./guards/post.guards.js";
+import {
   loadCommentOrThrow,
   assertCommentAuthor,
   commentAuthorIdOf,
-} = require("./guards/comment.guards.js");
-const {
+} from "./guards/comment.guards.js";
+import {
   encodeCursor,
   decodeCursor,
   buildCursorQuery,
   clampLimit,
   buildPageMeta,
-} = require("../utils/cursor.js");
+} from "../utils/cursor.js";
 
 const DEFAULT_COMMENT_PAGE_SIZE = 10; // API Contract §5.2 (D14)
 const COMMENT_SORT = { createdAt: 1, _id: 1 }; // oldest-first (D6)
@@ -64,7 +66,9 @@ const listCommentsService = async (
   // No assertClassWritable -- this is a read; archived classes stay
   // readable (C5).
 
-  const take = clampLimit(rawLimit, { defaultLimit: DEFAULT_COMMENT_PAGE_SIZE });
+  const take = clampLimit(rawLimit, {
+    defaultLimit: DEFAULT_COMMENT_PAGE_SIZE,
+  });
   const decoded = rawCursor ? decodeCursor(rawCursor) : null;
   const fetchTarget = take + 1;
 
@@ -121,7 +125,8 @@ const deleteCommentService = async (commentId, userId) => {
 
   if (commentAuthorIdOf(comment) !== userId.toString()) {
     assertClassOwner(classDoc, userId, {
-      message: "Only the comment author or class teacher can delete this comment",
+      message:
+        "Only the comment author or class teacher can delete this comment",
     });
   }
 
@@ -137,7 +142,7 @@ const deleteCommentService = async (commentId, userId) => {
   return comment;
 };
 
-module.exports = {
+export {
   createCommentService,
   listCommentsService,
   updateCommentService,

@@ -1,5 +1,5 @@
-const User = require("../models/User.model.js");
-const { NotFoundError } = require("../utils/error/errors.js");
+import User from "../models/User.model.js";
+import { NotFoundError } from "../utils/error/errors.js";
 
 const getCurrentUserService = async (userId) => {
   const user = await User.findById(userId).select("-passwordHash");
@@ -11,6 +11,4 @@ const getCurrentUserService = async (userId) => {
   return user;
 };
 
-module.exports = {
-  getCurrentUserService,
-};
+export { getCurrentUserService };

@@ -1,11 +1,8 @@
-const User = require("../models/User.model.js");
-const crypto = require("crypto");
-const bcrypt = require("bcryptjs");
-const {
-  ConflictError,
-  AuthenticationError,
-} = require("../utils/error/errors.js");
-const { verifyRefreshToken } = require("../config/jwt");
+import User from "../models/User.model.js";
+import crypto from "crypto";
+import bcrypt from "bcryptjs";
+import { ConflictError, AuthenticationError } from "../utils/error/errors.js";
+import { verifyRefreshToken } from "../config/jwt.js";
 
 function hashOTP(otp) {
   return crypto.createHash("sha256").update(otp).digest("hex");
@@ -135,7 +132,7 @@ const refreshAccessTokenService = async (token) => {
   return user;
 };
 
-module.exports = {
+export {
   registerUserService,
   loginUserService,
   forgetPasswordService,

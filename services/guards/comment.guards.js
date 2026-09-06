@@ -14,12 +14,10 @@
  * class.service.js stay inline rather than becoming a new guard function.
  */
 
-const mongoose = require("mongoose");
-const Comment = require("../../models/Comment.model.js");
-const {
-  ForbiddenError,
-  NotFoundError,
-} = require("../../utils/error/errors.js");
+import mongoose from "mongoose";
+
+import Comment from "../../models/Comment.model.js";
+import { ForbiddenError, NotFoundError } from "../../utils/error/errors.js";
 
 // Mirrors post.guards.js's authorIdOf: authorId is a raw ObjectId on most
 // reads and a populated User subdocument when populateAuthor is requested.
@@ -61,4 +59,4 @@ const assertCommentAuthor = (commentDoc, userId, { message } = {}) => {
   }
 };
 
-module.exports = { loadCommentOrThrow, assertCommentAuthor, commentAuthorIdOf };
+export { loadCommentOrThrow, assertCommentAuthor, commentAuthorIdOf };

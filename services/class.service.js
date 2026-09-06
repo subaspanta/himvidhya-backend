@@ -1,21 +1,23 @@
-const mongoose = require("mongoose");
-const Class = require("../models/Class.model.js");
-const ClassMember = require("../models/ClassMember.model.js");
-const JoinRequest = require("../models/JoinRequest.model.js");
-const {
+import mongoose from "mongoose";
+import Class from "../models/Class.model.js";
+import ClassMember from "../models/ClassMember.model.js";
+import JoinRequest from "../models/JoinRequest.model.js";
+
+import {
   ConflictError,
   NotFoundError,
   BadRequestError,
   AuthenticationError,
   ForbiddenError,
-} = require("../utils/error/errors.js");
-const {
+} from "../utils/error/errors.js";
+
+import {
   loadClassOrThrow,
   assertClassOwner,
   assertActiveMember,
   assertClassWritable,
   ownerIdOf,
-} = require("./guards/class.guards.js");
+} from "./guards/class.guards.js";
 
 // Generous ceiling for a classroom LMS's roster/join-queue/class-list sizes
 // -- high enough to never trip in normal use, low enough to stop a
@@ -540,7 +542,7 @@ const removeClassMemberService = async (classId, ownerId, targetUserId) => {
   return membership;
 };
 
-module.exports = {
+export {
   createClassService,
   joinClassService,
   approveJoinRequestService,

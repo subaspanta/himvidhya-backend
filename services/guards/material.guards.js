@@ -6,9 +6,10 @@
  * material.classId.
  */
 
-const mongoose = require("mongoose");
-const Material = require("../../models/Material.model.js");
-const { NotFoundError } = require("../../utils/error/errors.js");
+import mongoose from "mongoose";
+
+import Material from "../../models/Material.model.js";
+import { NotFoundError } from "../../utils/error/errors.js";
 
 const loadMaterialOrThrow = async (
   materialId,
@@ -34,4 +35,4 @@ const loadMaterialOrThrow = async (
   return material;
 };
 
-module.exports = { loadMaterialOrThrow };
+export { loadMaterialOrThrow };

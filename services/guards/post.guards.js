@@ -7,12 +7,10 @@
  * assertActiveMember/assertClassWritable from class.guards.js directly.
  */
 
-const mongoose = require("mongoose");
-const Post = require("../../models/Post.model.js");
-const {
-  ForbiddenError,
-  NotFoundError,
-} = require("../../utils/error/errors.js");
+import mongoose from "mongoose";
+
+import Post from "../../models/Post.model.js";
+import { ForbiddenError, NotFoundError } from "../../utils/error/errors.js";
 
 // Mirrors class.guards.js's ownerIdOf: authorId is a raw ObjectId on most
 // reads and a populated User subdocument on getPostByIdService's response.
@@ -54,4 +52,4 @@ const assertPostAuthor = (postDoc, userId, { message } = {}) => {
   }
 };
 
-module.exports = { loadPostOrThrow, assertPostAuthor, authorIdOf };
+export { loadPostOrThrow, assertPostAuthor, authorIdOf };

@@ -1,32 +1,34 @@
-const crypto = require("crypto");
-const path = require("path");
-const Material = require("../models/Material.model.js");
-const { logger } = require("../logger.js");
-const { BadRequestError } = require("../utils/error/errors.js");
-const {
+import crypto from "crypto";
+import path from "path";
+import Material from "../models/Material.model.js";
+import { logger } from "../logger.js";
+import { BadRequestError } from "../utils/error/errors.js";
+
+import {
   loadClassOrThrow,
   assertClassOwner,
   assertActiveMember,
   assertClassWritable,
-} = require("./guards/class.guards.js");
-const { loadMaterialOrThrow } = require("./guards/material.guards.js");
-const {
+} from "./guards/class.guards.js";
+
+import { loadMaterialOrThrow } from "./guards/material.guards.js";
+import {
   presignPut,
   presignGet,
   headObject,
   deleteObject,
-} = require("../config/storage.js");
-const {
+} from "../config/storage.js";
+import {
   MAX_MATERIAL_SIZE_BYTES,
   ALLOWED_MIME_TYPES,
-} = require("../config/materialRules.js");
-const {
+} from "../config/materialRules.js";
+import {
   encodeCursor,
   decodeCursor,
   buildCursorQuery,
   clampLimit,
   buildPageMeta,
-} = require("../utils/cursor.js");
+} from "../utils/cursor.js";
 
 const DEFAULT_MATERIAL_PAGE_SIZE = 20; // API Contract §5.2 (D14)
 const MATERIAL_SORT = { createdAt: -1, _id: -1 };
@@ -46,7 +48,8 @@ const buildStorageKey = (classId, fileName) => {
 };
 
 const stripStorageKey = (material) => {
-  const plain = typeof material.toObject === "function" ? material.toObject() : material;
+  const plain =
+    typeof material.toObject === "function" ? material.toObject() : material;
   delete plain.storageKey;
   return plain;
 };
@@ -122,7 +125,9 @@ const listMaterialsService = async (
   // No assertClassWritable -- this is a read; archived classes stay
   // readable (C5) and materials in them remain downloadable.
 
-  const take = clampLimit(rawLimit, { defaultLimit: DEFAULT_MATERIAL_PAGE_SIZE });
+  const take = clampLimit(rawLimit, {
+    defaultLimit: DEFAULT_MATERIAL_PAGE_SIZE,
+  });
   const decoded = rawCursor ? decodeCursor(rawCursor) : null;
   const fetchTarget = take + 1;
 
@@ -136,7 +141,11 @@ const listMaterialsService = async (
     const escaped = q.trim().replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const pattern = new RegExp(escaped, "i");
     conditions.push({
-      $or: [{ title: pattern }, { description: pattern }, { fileName: pattern }],
+      $or: [
+        { title: pattern },
+        { description: pattern },
+        { fileName: pattern },
+      ],
     });
   }
   const filter = conditions.length > 1 ? { $and: conditions } : conditions[0];
@@ -195,7 +204,8 @@ const updateMaterialService = async (materialId, userId, updates) => {
   assertClassWritable(classDoc);
 
   if (updates.title !== undefined) material.title = updates.title;
-  if (updates.description !== undefined) material.description = updates.description;
+  if (updates.description !== undefined)
+    material.description = updates.description;
 
   let replacedStorageKey = null;
   if (updates.storageKey && updates.storageKey !== material.storageKey) {
@@ -283,7 +293,7 @@ const deleteMaterialService = async (materialId, userId) => {
   await Material.deleteOne({ _id: material._id });
 };
 
-module.exports = {
+export {
   requestMaterialUploadUrlService,
   confirmMaterialUploadService,
   listMaterialsService,

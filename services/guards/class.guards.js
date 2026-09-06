@@ -31,13 +31,11 @@
  * (e.g. a future PATCH /classes/:classId) that hold only an id.
  */
 
-const mongoose = require("mongoose");
-const Class = require("../../models/Class.model.js");
-const ClassMember = require("../../models/ClassMember.model.js");
-const {
-  ForbiddenError,
-  NotFoundError,
-} = require("../../utils/error/errors.js");
+import mongoose from "mongoose";
+
+import Class from "../../models/Class.model.js";
+import ClassMember from "../../models/ClassMember.model.js";
+import { ForbiddenError, NotFoundError } from "../../utils/error/errors.js";
 
 // classDoc.owner is a raw ObjectId on most reads and a populated User
 // subdocument on getClassByIdService. Normalize once here so a caller that
@@ -137,7 +135,7 @@ const assertClassWritable = (classDoc, { message } = {}) => {
   }
 };
 
-module.exports = {
+export {
   loadClassOrThrow,
   assertClassOwner,
   assertActiveMember,
