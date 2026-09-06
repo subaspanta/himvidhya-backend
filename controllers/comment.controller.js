@@ -1,14 +1,12 @@
-const {
+import {
   createCommentService,
   listCommentsService,
   updateCommentService,
   deleteCommentService,
-} = require("../services/comment.service.js");
-const {
-  createdResponse,
-  successResponse,
-} = require("../utils/responseParser.js");
-const asyncHandler = require("../helpers/asyncHandler.js");
+} from "../services/comment.service.js";
+
+import { createdResponse, successResponse } from "../utils/responseParser.js";
+import asyncHandler from "../helpers/asyncHandler.js";
 
 const createCommentController = asyncHandler(async (req, res) => {
   const { postId } = req.params;
@@ -53,7 +51,7 @@ const deleteCommentController = asyncHandler(async (req, res) => {
   return successResponse(res, { comment }, "Comment deleted successfully");
 });
 
-module.exports = {
+export {
   createCommentController,
   listCommentsController,
   updateCommentController,

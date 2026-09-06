@@ -1,4 +1,4 @@
-const {
+import {
   createClassService,
   joinClassService,
   approveJoinRequestService,
@@ -14,14 +14,11 @@ const {
   getClassMembersService,
   leaveClassService,
   removeClassMemberService,
-} = require("../services/class.service.js");
+} from "../services/class.service.js";
 
-const { BadRequestError } = require("../utils/error/errors.js");
-const {
-  createdResponse,
-  successResponse,
-} = require("../utils/responseParser.js");
-const asyncHandler = require("../helpers/asyncHandler.js");
+import { BadRequestError } from "../utils/error/errors.js";
+import { createdResponse, successResponse } from "../utils/responseParser.js";
+import asyncHandler from "../helpers/asyncHandler.js";
 
 // Create a new class (teacher only)
 const createClassController = asyncHandler(async (req, res) => {
@@ -122,11 +119,7 @@ const getTeacherJoinRequestsCountController = asyncHandler(async (req, res) => {
 const getMyClassesController = asyncHandler(async (req, res) => {
   const classes = await getMyClassesService(req.auth.userId);
 
-  return successResponse(
-    res,
-    { classes },
-    "Classes retrieved successfully",
-  );
+  return successResponse(res, { classes }, "Classes retrieved successfully");
 });
 
 // Get details of a specific class (only if member)
@@ -156,7 +149,11 @@ const updateClassController = asyncHandler(async (req, res) => {
     req.body,
   );
 
-  return successResponse(res, { class: classData }, "Class updated successfully");
+  return successResponse(
+    res,
+    { class: classData },
+    "Class updated successfully",
+  );
 });
 
 // Owner archives their own class
@@ -165,7 +162,11 @@ const archiveClassController = asyncHandler(async (req, res) => {
 
   const classData = await archiveClassService(classId, req.auth.userId);
 
-  return successResponse(res, { class: classData }, "Class archived successfully");
+  return successResponse(
+    res,
+    { class: classData },
+    "Class archived successfully",
+  );
 });
 
 // Owner restores their own archived class
@@ -174,7 +175,11 @@ const restoreClassController = asyncHandler(async (req, res) => {
 
   const classData = await restoreClassService(classId, req.auth.userId);
 
-  return successResponse(res, { class: classData }, "Class restored successfully");
+  return successResponse(
+    res,
+    { class: classData },
+    "Class restored successfully",
+  );
 });
 
 // Owner regenerates their class's join code
@@ -221,7 +226,7 @@ const removeClassMemberController = asyncHandler(async (req, res) => {
   return successResponse(res, { membership }, "Member removed successfully");
 });
 
-module.exports = {
+export {
   createClassController,
   joinClassController,
   approveJoinRequestController,

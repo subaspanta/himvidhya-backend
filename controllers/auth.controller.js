@@ -1,7 +1,8 @@
-const { signAccessToken, signRefreshToken } = require("../config/jwt");
-const bcrypt = require("bcryptjs");
-const { logger } = require("../logger.js");
-const {
+import { signAccessToken, signRefreshToken } from "../config/jwt.js";
+import bcrypt from "bcryptjs";
+import { logger } from "../logger.js";
+
+import {
   forgetPasswordService,
   loginUserService,
   registerUserService,
@@ -10,13 +11,11 @@ const {
   logoutUserService,
   getCurrentUserService,
   refreshAccessTokenService,
-} = require("../services/auth.service.js");
-const { sendOTPEmail } = require("../utils/email.js");
-const {
-  createdResponse,
-  successResponse,
-} = require("../utils/responseParser.js");
-const asyncHandler = require("../helpers/asyncHandler.js");
+} from "../services/auth.service.js";
+
+import { sendOTPEmail } from "../utils/email.js";
+import { createdResponse, successResponse } from "../utils/responseParser.js";
+import asyncHandler from "../helpers/asyncHandler.js";
 
 const register = asyncHandler(async (req, res) => {
   const { name, email, password, role } = req.body;
@@ -215,7 +214,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   return successResponse(res, null, "Access token refreshed");
 });
 
-module.exports = {
+export {
   register,
   login,
   logout,

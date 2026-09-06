@@ -1,6 +1,6 @@
-const { getCurrentUserService } = require("../services/user.service.js");
-const { successResponse } = require("../utils/responseParser.js");
-const asyncHandler = require("../helpers/asyncHandler.js");
+import { getCurrentUserService } from "../services/user.service.js";
+import { successResponse } from "../utils/responseParser.js";
+import asyncHandler from "../helpers/asyncHandler.js";
 
 const getCurrentUser = asyncHandler(async (req, res) => {
   const user = await getCurrentUserService(req.auth.userId);
@@ -8,6 +8,4 @@ const getCurrentUser = asyncHandler(async (req, res) => {
   return successResponse(res, { user }, "User retrieved successfully");
 });
 
-module.exports = {
-  getCurrentUser,
-};
+export { getCurrentUser };

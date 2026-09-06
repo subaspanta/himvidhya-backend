@@ -1,4 +1,4 @@
-const {
+import {
   createPostService,
   listPostsFeedService,
   getPostByIdService,
@@ -6,12 +6,10 @@ const {
   deletePostService,
   pinPostService,
   unpinPostService,
-} = require("../services/post.service.js");
-const {
-  createdResponse,
-  successResponse,
-} = require("../utils/responseParser.js");
-const asyncHandler = require("../helpers/asyncHandler.js");
+} from "../services/post.service.js";
+
+import { createdResponse, successResponse } from "../utils/responseParser.js";
+import asyncHandler from "../helpers/asyncHandler.js";
 
 const createPostController = asyncHandler(async (req, res) => {
   const { classId } = req.params;
@@ -31,7 +29,13 @@ const listPostsController = asyncHandler(async (req, res) => {
     cursor,
     limit,
   });
-  return successResponse(res, { posts }, "Posts retrieved successfully", 200, meta);
+  return successResponse(
+    res,
+    { posts },
+    "Posts retrieved successfully",
+    200,
+    meta,
+  );
 });
 
 const getPostByIdController = asyncHandler(async (req, res) => {
@@ -63,7 +67,7 @@ const unpinPostController = asyncHandler(async (req, res) => {
   return successResponse(res, { post }, "Post unpinned successfully");
 });
 
-module.exports = {
+export {
   createPostController,
   listPostsController,
   getPostByIdController,
