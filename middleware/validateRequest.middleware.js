@@ -1,4 +1,4 @@
-const { validationErrorResponse } = require("../utils/responseParser.js");
+import {validationErrorResponse} from "../utils/responseParser.js";
 
 const validate = (schema) => {
   return (req, res, next) => {
@@ -19,4 +19,4 @@ const validate = (schema) => {
   };
 };
 
-module.exports = validate;
+export default validate;

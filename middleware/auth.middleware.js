@@ -1,9 +1,9 @@
-const { verifyAccessToken } = require("../config/jwt");
-const {
+import { verifyAccessToken } from "../config/jwt.js";
+import {
   unauthorizedResponse,
   forbiddenResponse,
-} = require("../utils/responseParser.js");
-const User = require("../models/User.model.js");
+} from "../utils/responseParser.js";
+import User from "../models/User.model.js";
 
 //  verifies JWT and attaches minimal user info to req.auth
 const authenticate = async (req, res, next) => {
@@ -56,7 +56,4 @@ const authorize =
     next();
   };
 
-module.exports = {
-  authenticate,
-  authorize,
-};
+export { authenticate, authorize };

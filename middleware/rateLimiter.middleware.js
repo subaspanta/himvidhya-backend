@@ -1,4 +1,4 @@
-const rateLimit = require("express-rate-limit");
+import rateLimit from "express-rate-limit";
 
 // The integration suite drives real HTTP requests through /auth/register
 // across many test files in one Jest process (--runInBand); without this,
@@ -75,10 +75,4 @@ const uploadLimiter = rateLimit({
   },
 });
 
-module.exports = {
-  authLimiter,
-  apiLimiter,
-  refreshLimiter,
-  writeLimiter,
-  uploadLimiter,
-};
+export { authLimiter, apiLimiter, refreshLimiter, writeLimiter, uploadLimiter };
