@@ -10,4 +10,4 @@ const STATUS_CODES = {
   INTERNAL_ERROR: 500,
 };
 
-module.exports = { STATUS_CODES };
+export { STATUS_CODES };

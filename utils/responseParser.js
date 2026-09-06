@@ -129,7 +129,7 @@ const serverErrorResponse = (res, message = "Internal server error") => {
   return errorResponse(res, message, 500);
 };
 
-module.exports = {
+export {
   successResponse,
   errorResponse,
   createdResponse,

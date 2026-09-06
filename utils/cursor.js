@@ -12,8 +12,9 @@
  * utility reusable, unmodified, by Comments/Materials/Notifications later.
  */
 
-const mongoose = require("mongoose");
-const { UnprocessableEntityError } = require("./error/errors.js");
+import mongoose from "mongoose";
+
+import { UnprocessableEntityError } from "./error/errors.js";
 
 const MAX_PAGE_SIZE = 50; // D14 hard maximum, resource-agnostic
 
@@ -112,7 +113,7 @@ const buildPageMeta = ({ hasMore, nextCursor = null }) => {
   return { hasMore: Boolean(hasMore), nextCursor: hasMore ? nextCursor : null };
 };
 
-module.exports = {
+export {
   MAX_PAGE_SIZE,
   encodeCursor,
   decodeCursor,

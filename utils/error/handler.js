@@ -1,6 +1,8 @@
-const fs = require("fs");
-const path = require("path");
-const {
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+import {
   NotFoundError,
   ValidationError,
   AuthorizeError,
@@ -9,8 +11,11 @@ const {
   ForbiddenError,
   ConflictError,
   UnprocessableEntityError,
-} = require("./errors");
-const { logger } = require("../../logger");
+} from "./errors.js";
+
+import { logger } from "../../logger.js";
+
+const serverDirectory = path.dirname(fileURLToPath(import.meta.url));
 
 const SENSITIVE_BODY_FIELDS = new Set([
   "password",
@@ -37,7 +42,7 @@ const redactBody = (body) => {
 const fallbackLog = (err) => {
   try {
     fs.appendFileSync(
-      path.join(__dirname, "../../logs/fatal.log"),
+      path.join(serverDirectory, "../../logs/fatal.log"),
       `${new Date().toISOString()} | ${err.message}\n${err.stack}\n\n`,
     );
   } catch {
@@ -125,7 +130,7 @@ const HandleUnhandledRejection = (reason) => {
   process.exit(1);
 };
 
-module.exports = {
+export {
   HandleErrorWithLogger,
   HandleUnCaughtException,
   HandleUnhandledRejection,

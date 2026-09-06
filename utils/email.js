@@ -1,4 +1,4 @@
-const nodemailer = require("nodemailer");
+import nodemailer from "nodemailer";
 
 const sendOTPEmail = async (to, otp) => {
   const transporter = nodemailer.createTransport({
@@ -35,4 +35,4 @@ const sendOTPEmail = async (to, otp) => {
 // Keep backward compatibility
 const sendResetEmail = sendOTPEmail;
 
-module.exports = { sendOTPEmail, sendResetEmail };
+export { sendOTPEmail, sendResetEmail };

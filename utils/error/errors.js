@@ -1,4 +1,4 @@
-const { STATUS_CODES } = require("./status-codes");
+import { STATUS_CODES } from "./status-codes.js";
 
 class BaseError extends Error {
   constructor(name, status, description) {
@@ -87,7 +87,7 @@ const handleNotFound = (req, res) => {
   });
 };
 
-module.exports = {
+export {
   BaseError,
   APIError,
   ValidationError,

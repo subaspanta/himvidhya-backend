@@ -1,7 +1,8 @@
-const winston = require("winston");
-const path = require("path");
+import winston from "winston";
+import path from "path";
+import { fileURLToPath } from "url";
 
-const logDir = path.join(__dirname, "logs");
+const logDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "logs");
 
 const readableFormat = winston.format.combine(
   winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
@@ -50,4 +51,4 @@ const logger = winston.createLogger({
   ],
 });
 
-module.exports = { logger };
+export { logger };
