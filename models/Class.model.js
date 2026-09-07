@@ -1,9 +1,7 @@
 import mongoose from "mongoose";
 import crypto from "crypto";
 
-// Base36 alphabet -- keeps generated codes visually consistent with the
-// previous Math.random().toString(36) output while sourcing each character
-// from a CSPRNG.
+// Base36 alphabet for cryptographically secure join codes
 const JOIN_CODE_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const JOIN_CODE_LENGTH = 8;
 
@@ -57,12 +55,12 @@ const classSchema = new mongoose.Schema(
   },
 );
 
-// Indexes for performance
+// Indexes
 classSchema.index({ joinCode: 1 }, { unique: true });
 classSchema.index({ owner: 1 });
 classSchema.index({ createdAt: -1 });
 
-// Static Method: Generate unique join code
+// Generate unique join code
 classSchema.statics.generateUniqueCode = async function () {
   let code;
   let isUnique = false;
@@ -87,4 +85,4 @@ classSchema.statics.generateUniqueCode = async function () {
   return code;
 };
 
-export default mongoose.model("Class", classSchema);
+export default mongoose.models.Class || mongoose.model("Class", classSchema);

@@ -2,15 +2,16 @@ import dotenv from "dotenv";
 import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
-import connectDB from "./config/database.js";
+import helmet from "helmet"; // Moved to top with other imports
+import cookieParser from "cookie-parser";
 
+import connectDB from "./config/database.js";
 import {
   HandleErrorWithLogger,
   HandleUnCaughtException,
   HandleUnhandledRejection,
   handleNotFound,
 } from "./utils/error/index.js";
-
 import authRoutes from "./routes/auth.route.js";
 import classRoutes from "./routes/class.route.js";
 import { classScopedPostRoutes, postRoutes } from "./routes/post.route.js";
@@ -23,15 +24,12 @@ import {
   materialRoutes,
 } from "./routes/material.route.js";
 import userRoutes from "./routes/user.route.js";
-
-import cookieParser from "cookie-parser";
 import { apiLimiter } from "./middleware/rateLimiter.middleware.js";
 import { getVersionedPath } from "./config/apiVersion.js";
 
 dotenv.config();
 
 const app = express();
-import helmet from "helmet";
 
 app.use(helmet());
 app.use(
@@ -90,11 +88,9 @@ app.use(`${apiV1Path}/users`, userRoutes);
 
 // 404 handler
 app.use(handleNotFound);
-
 app.use(HandleErrorWithLogger);
 
 process.on("uncaughtException", HandleUnCaughtException);
-
 process.on("unhandledRejection", HandleUnhandledRejection);
 
 const PORT = process.env.PORT || 5000;
@@ -131,7 +127,9 @@ async function startServer() {
   }
 }
 
-if (process.argv[1] === new URL(import.meta.url).pathname) {
+// ESM-compatible check for direct execution
+const isMainModule = process.argv[1] === new URL(import.meta.url).pathname;
+if (isMainModule) {
   startServer();
 }
 

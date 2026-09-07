@@ -1,10 +1,5 @@
 import mongoose from "mongoose";
 
-// D4: no attachments field -- file upload is a Materials-phase concern with
-// its own storage client, not built yet. D3: content is plain text -- the
-// server stores/returns it as an opaque string with no sanitization or
-// markdown/HTML interpretation; "renders as plain text" is a client
-// rendering guarantee, out of scope here.
 const postSchema = new mongoose.Schema(
   {
     title: {
@@ -33,19 +28,15 @@ const postSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    // I7: soft-delete marker. null = live. Set once by deletePostService,
-    // never unset -- there is no undelete endpoint.
     deletedAt: {
       type: Date,
-      default: null,
+      default: null, // Soft-delete: null = active, Date = deleted
     },
   },
   { timestamps: true },
 );
 
-// Serves both the pinned-first feed query (GET /classes/:classId/posts)
-// and the I5 pinned-count check in pinPostService
-// ({ classId, isPinned: true, deletedAt: null }).
+// Index for pinned-first feed and pin count queries
 postSchema.index({ classId: 1, isPinned: 1, createdAt: -1, _id: -1 });
 
-export default mongoose.model("Post", postSchema);
+export default mongoose.models.Post || mongoose.model("Post", postSchema);

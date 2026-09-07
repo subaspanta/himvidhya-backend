@@ -47,4 +47,5 @@ joinRequestSchema.index({ user: 1, status: 1 });
 // Check if a request already exists from this user for this class
 joinRequestSchema.index({ class: 1, user: 1 });
 
-export default mongoose.model("JoinRequest", joinRequestSchema);
+export default mongoose.models.JoinRequest ||
+  mongoose.model("JoinRequest", joinRequestSchema);

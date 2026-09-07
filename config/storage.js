@@ -1,24 +1,3 @@
-/**
- * S3-compatible object storage client (ADR-0005). MinIO locally, Cloudflare
- * R2 in production -- one interface, environment configuration is the only
- * difference (D20/D21).
- *
- * Two clients, not one:
- *  - `internalClient` talks to S3_ENDPOINT (container-internal address,
- *    e.g. http://minio:9000 under Compose) for server-side operations
- *    (HeadObject, DeleteObject) that never leave the server process.
- *  - `publicClient` signs against S3_PUBLIC_ENDPOINT (browser-reachable,
- *    e.g. http://localhost:9000) because presigned URLs are consumed by
- *    the browser, not the server container -- signing against the
- *    internal host would produce a URL the browser can't reach.
- * Outside Docker both endpoints are the same value, so this collapses to
- * one effective client with no special-casing needed.
- *
- * Built lazily behind assertStorageEnv() so importing this module (or
- * booting the server without Materials configured) never throws -- only
- * an actual storage operation does.
- */
-
 import {
   S3Client,
   HeadObjectCommand,
@@ -26,7 +5,6 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
-
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const REQUIRED_ENV_VARS = [
@@ -38,7 +16,7 @@ const REQUIRED_ENV_VARS = [
   "S3_REGION",
 ];
 
-const UPLOAD_URL_EXPIRY_SECONDS = 5 * 60; // long enough for a 25MB upload on a slow link
+const UPLOAD_URL_EXPIRY_SECONDS = 5 * 60;
 const DOWNLOAD_URL_EXPIRY_SECONDS = 5 * 60;
 
 function assertStorageEnv() {
@@ -106,9 +84,6 @@ const presignGet = async (
   return getSignedUrl(getPublicClient(), command, { expiresIn });
 };
 
-// Returns the object's metadata (ContentLength, ContentType, ...) or null
-// if it does not exist -- callers use this to verify a client-reported
-// upload actually landed before trusting it (Material confirm/replace).
 const headObject = async (key) => {
   try {
     return await getInternalClient().send(

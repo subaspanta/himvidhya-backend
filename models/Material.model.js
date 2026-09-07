@@ -1,10 +1,5 @@
 import mongoose from "mongoose";
 
-// Metadata only -- file bytes live in S3-compatible object storage,
-// transferred by presigned URL (ADR-0005). Unlike Post/Comment, Material
-// deletion is a HARD delete: Domain Model §3.7 requires the metadata
-// record AND the stored object to be removed together, with no
-// undelete/tombstone concept for files.
 const materialSchema = new mongoose.Schema(
   {
     title: {
@@ -33,11 +28,9 @@ const materialSchema = new mongoose.Schema(
       required: [true, "Size is required"],
       min: [1, "Size must be greater than 0"],
     },
-    // Object key in the bucket. Never serialized to a client-facing
-    // response -- presigned URLs are the only access path (ADR-0005).
     storageKey: {
       type: String,
-      required: true,
+      required: true, // S3 object key, never exposed to clients
     },
     classId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -53,7 +46,8 @@ const materialSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-// Serves the material list pagination query.
+// Index for paginated material list queries
 materialSchema.index({ classId: 1, createdAt: -1, _id: -1 });
 
-export default mongoose.model("Material", materialSchema);
+export default mongoose.models.Material ||
+  mongoose.model("Material", materialSchema);

@@ -34,9 +34,6 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-    // For now this stores a full URL; if you move to
-    // providers like Cloudinary or S3, prefer storing
-    // only the provider-specific public ID instead.
     avatar: {
       type: String,
       default: null,
@@ -58,7 +55,7 @@ userSchema.index({ email: 1 });
 userSchema.index({ role: 1 });
 userSchema.index({ resetPasswordOTP: 1 });
 
-// Hash password
+// Hash password before saving
 userSchema.pre("save", async function (next) {
   if (!this.isModified("passwordHash")) return next();
 
@@ -71,12 +68,12 @@ userSchema.pre("save", async function (next) {
   }
 });
 
-// Compare password
+// Compare entered password with stored hash
 userSchema.methods.comparePassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.passwordHash);
 };
 
-// Hide sensitive fields
+// Remove sensitive fields when serializing to JSON
 userSchema.methods.toJSON = function () {
   const obj = this.toObject();
   delete obj.passwordHash;
@@ -89,9 +86,9 @@ userSchema.methods.toJSON = function () {
   return obj;
 };
 
-// Optional virtual
+// Virtual display name fallback
 userSchema.virtual("displayName").get(function () {
   return this.name || this.email?.split("@")[0] || "User";
 });
 
-export default mongoose.model("User", userSchema);
+export default mongoose.models.User || mongoose.model("User", userSchema);

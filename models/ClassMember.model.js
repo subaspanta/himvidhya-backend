@@ -35,4 +35,5 @@ classMemberSchema.index({ userId: 1, status: 1 });
 // A class's roster
 classMemberSchema.index({ classId: 1, status: 1 });
 
-export default mongoose.model("ClassMember", classMemberSchema);
+export default mongoose.models.ClassMember ||
+  mongoose.model("ClassMember", classMemberSchema);
