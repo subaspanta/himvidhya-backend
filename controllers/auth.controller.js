@@ -25,7 +25,7 @@ const register = asyncHandler(async (req, res) => {
   const accessToken = signAccessToken({ userId: user._id, role: user.role });
   const refreshToken = signRefreshToken({ userId: user._id });
 
-  // Store only a hashed version of the refresh token in DB
+  // Store only the refresh-token hash.
   user.refreshToken = await bcrypt.hash(refreshToken, 10);
   await user.save();
 
@@ -62,7 +62,7 @@ const login = asyncHandler(async (req, res) => {
   const accessToken = signAccessToken({ userId: user._id, role: user.role });
   const refreshToken = signRefreshToken({ userId: user._id });
 
-  // Store only a hashed version of the refresh token in DB
+  // Store only the refresh-token hash.
   user.refreshToken = await bcrypt.hash(refreshToken, 10);
   await user.save();
 
@@ -86,7 +86,7 @@ const login = asyncHandler(async (req, res) => {
 });
 
 const logout = asyncHandler(async (req, res) => {
-  // Cookie options must match exactly with how they were set
+  // Clear cookies with the same paths used when setting them.
   const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
