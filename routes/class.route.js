@@ -106,8 +106,7 @@ router.post(
 
 router.get("/:classId/members", authenticate, getClassMembersController);
 
-// Registered before /:classId/members/:userId below — a param route would
-// otherwise shadow this literal "me" segment.
+// Register before /:classId/members/:userId so "me" is not treated as an id.
 router.delete(
   "/:classId/members/me",
   authenticate,

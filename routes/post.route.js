@@ -1,15 +1,5 @@
-// Posts is the first feature needing two genuinely different path prefixes
-// for one resource: class-scoped (create/list, nested under
-// /classes/:classId/posts) and top-level (single-post ops, /posts/:postId).
-// A single shared Router instance can't do this -- Express router instances
-// have one route table, so mounting the same instance at two prefixes would
-// expose every route at both (a class-scoped POST / would also become
-// reachable as POST /posts with classId undefined). Two separate Router
-// instances, each mounted once in server.js, avoids that entirely.
-// classScopedPostRoutes needs { mergeParams: true } so req.params.classId
-// (defined only in the *mount* path, not in this router's own patterns) is
-// visible inside its handlers; postRoutes doesn't need it, since :postId is
-// defined directly in its own route patterns.
+// Split routers keep class-scoped and top-level post paths separate.
+// The nested router uses mergeParams to read classId from its mount path.
 import express from "express";
 
 const classScopedPostRoutes = express.Router({ mergeParams: true });
@@ -33,7 +23,7 @@ import {
   updatePostSchema,
 } from "../schemas/validationSchemas.js";
 
-// -- mounted at ${apiV1Path}/classes/:classId/posts --
+// Mounted at /classes/:classId/posts.
 classScopedPostRoutes.post(
   "/",
   authenticate,
@@ -44,7 +34,7 @@ classScopedPostRoutes.post(
 );
 classScopedPostRoutes.get("/", authenticate, listPostsController);
 
-// -- mounted at ${apiV1Path}/posts --
+// Mounted at /posts.
 postRoutes.get("/:postId", authenticate, getPostByIdController);
 postRoutes.patch(
   "/:postId",

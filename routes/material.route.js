@@ -1,6 +1,5 @@
-// Two-router split, same shape as post.route.js: class-scoped routes need
-// { mergeParams: true } to see :classId from the mount path; top-level
-// material routes define :materialId in their own patterns.
+// Split routers keep class-scoped and top-level material paths separate.
+// The nested router uses mergeParams to read classId from its mount path.
 import express from "express";
 
 const classScopedMaterialRoutes = express.Router({ mergeParams: true });
@@ -28,7 +27,7 @@ import {
   requestMaterialReplaceUrlSchema,
 } from "../schemas/validationSchemas.js";
 
-// -- mounted at ${apiV1Path}/classes/:classId/materials --
+// Mounted at /classes/:classId/materials.
 classScopedMaterialRoutes.post(
   "/upload-url",
   authenticate,
@@ -46,7 +45,7 @@ classScopedMaterialRoutes.post(
 );
 classScopedMaterialRoutes.get("/", authenticate, listMaterialsController);
 
-// -- mounted at ${apiV1Path}/materials --
+// Mounted at /materials.
 materialRoutes.get("/:materialId", authenticate, getMaterialByIdController);
 materialRoutes.get(
   "/:materialId/download-url",
