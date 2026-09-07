@@ -15,7 +15,7 @@ const registerUserService = async ({ name, email, password, role }) => {
     throw new ConflictError("Email already exists");
   }
 
-  // Create user (password will be hashed by the pre-save hook)
+  // The User pre-save hook hashes the plaintext password.
   const user = await User.create({
     name,
     email,
@@ -45,7 +45,7 @@ const forgetPasswordService = async (email) => {
   const user = await User.findOne({ email });
   if (!user) return null;
 
-  // Generate 6-digit OTP
+  // Store only a hash of the time-limited OTP.
   const otp = crypto.randomInt(100000, 1000000).toString();
 
   user.resetPasswordOTP = hashOTP(otp);
@@ -56,6 +56,7 @@ const forgetPasswordService = async (email) => {
 };
 
 const verifyOTPService = async (email, otp) => {
+  // Matching the hash and expiry prevents OTP reuse after timeout.
   const user = await User.findOne({
     email,
     resetPasswordOTP: hashOTP(otp),
@@ -67,6 +68,7 @@ const verifyOTPService = async (email, otp) => {
 };
 
 const resetPasswordService = async (email, otp, newPassword) => {
+  // Validate the OTP before changing the password.
   const user = await User.findOne({
     email,
     resetPasswordOTP: hashOTP(otp),
@@ -119,6 +121,7 @@ const refreshAccessTokenService = async (token) => {
     throw new AuthenticationError("Refresh token expired or invalid");
   }
 
+  // JWT validity is not enough; the token must still match the stored hash.
   const user = await User.findById(payload.userId);
   if (!user || !user.refreshToken) {
     throw new AuthenticationError("Invalid refresh token");
