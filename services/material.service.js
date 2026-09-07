@@ -54,9 +54,7 @@ const stripStorageKey = (material) => {
   return plain;
 };
 
-// Step 1 of 3: authorize + validate declared MIME/size, issue a presigned
-// PUT for a server-generated key. No DB write yet -- the record is only
-// created once the client confirms the bytes actually landed (step 3).
+// Issue the upload URL; create metadata only after confirmation.
 const requestMaterialUploadUrlService = async (
   classId,
   userId,
@@ -73,10 +71,7 @@ const requestMaterialUploadUrlService = async (
   return { uploadUrl, storageKey };
 };
 
-// Step 3: confirms the upload actually happened by reading the object's
-// real metadata via headObject rather than trusting client-declared
-// mimeType/size a second time -- closes the gap where step 1's validated
-// values and the bytes actually PUT could otherwise diverge.
+// Confirm the stored object's metadata instead of trusting the client.
 const confirmMaterialUploadService = async (
   classId,
   userId,
@@ -122,8 +117,7 @@ const listMaterialsService = async (
   await assertActiveMember(classDoc, userId, {
     message: "You are not a member of this class",
   });
-  // No assertClassWritable -- this is a read; archived classes stay
-  // readable (C5) and materials in them remain downloadable.
+  // Archived classes remain readable and downloadable.
 
   const take = clampLimit(rawLimit, {
     defaultLimit: DEFAULT_MATERIAL_PAGE_SIZE,
@@ -131,8 +125,7 @@ const listMaterialsService = async (
   const decoded = rawCursor ? decodeCursor(rawCursor) : null;
   const fetchTarget = take + 1;
 
-  // Cursor filter and search filter both use $or -- combined via $and so
-  // neither silently overwrites the other.
+  // Combine cursor and search filters so neither overwrites the other.
   const conditions = [{ classId: classDoc._id }];
   if (decoded) {
     conditions.push(buildCursorQuery({ cursor: decoded, direction: "desc" }));
@@ -193,10 +186,7 @@ const getMaterialDownloadUrlService = async (materialId, userId) => {
   return { downloadUrl, fileName: material.fileName };
 };
 
-// updates.storageKey is only ever populated internally, by
-// requestMaterialReplaceUrlService's caller after a real PUT -- see
-// material.controller.js. It is verified via headObject before use, the
-// same way confirmMaterialUploadService verifies a fresh upload.
+// Only accept replacement keys after headObject verifies the upload.
 const updateMaterialService = async (materialId, userId, updates) => {
   const material = await loadMaterialOrThrow(materialId);
   const classDoc = await loadClassOrThrow(material.classId);
@@ -230,11 +220,7 @@ const updateMaterialService = async (materialId, userId, updates) => {
   await material.save();
 
   if (replacedStorageKey) {
-    // Best-effort cleanup of the replaced object. The metadata swap has
-    // already succeeded and is authoritative; a failure here leaves a
-    // logged orphan in storage, not an inconsistent record (Domain Model
-    // §3.7: no silent accumulation -- logged counts as handled, there is
-    // no background reconciliation job in v1).
+    // Metadata is authoritative; log, rather than undo, cleanup failures.
     try {
       await deleteObject(replacedStorageKey);
     } catch (err) {
@@ -249,11 +235,7 @@ const updateMaterialService = async (materialId, userId, updates) => {
   return stripStorageKey(material);
 };
 
-// Step 1 of the replace flow: same shape as requestMaterialUploadUrlService
-// but for an existing material -- issues a presigned PUT for a *new* key.
-// The swap itself only happens when PATCH is called with that key (see
-// updateMaterialService), which verifies the object before touching the
-// record.
+// Issue a new replacement key; update the record only after verification.
 const requestMaterialReplaceUrlService = async (
   materialId,
   userId,
@@ -271,10 +253,7 @@ const requestMaterialReplaceUrlService = async (
   return { uploadUrl, storageKey };
 };
 
-// Hard delete (Domain Model §3.7) -- no soft-delete/tombstone for
-// Materials. Object removed first, then the record, per the documented
-// orphan-avoidance order; a failed object delete is logged and does not
-// block the metadata removal (no background reconciliation job in v1).
+// Hard-delete the object first, then remove its metadata record.
 const deleteMaterialService = async (materialId, userId) => {
   const material = await loadMaterialOrThrow(materialId);
   const classDoc = await loadClassOrThrow(material.classId);
