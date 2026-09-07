@@ -1,26 +1,11 @@
-/**
- * Comment-specific guards. Scope: "is this caller allowed to touch this
- * specific comment" (I9, author-only edit) -- nothing more. Mirrors
- * post.guards.js exactly. Class-level authorization (owner, active member,
- * writable) is never duplicated here; every Comment service function that
- * needs it loads the owning Post (for classId) and reuses
- * loadClassOrThrow/assertClassOwner/assertActiveMember/assertClassWritable
- * from class.guards.js directly.
- *
- * The author-or-class-owner OR (moderation delete, I9) is not a reusable
- * authorization primitive shared by anything else -- it is one feature's
- * business rule, composed inline in comment.service.js the same way the
- * owner-as-member regression guard and the "already a member" check in
- * class.service.js stay inline rather than becoming a new guard function.
- */
+/** Comment lookup and author guard; class-level checks stay in class.guards.js. */
 
 import mongoose from "mongoose";
 
 import Comment from "../../models/Comment.model.js";
 import { ForbiddenError, NotFoundError } from "../../utils/error/errors.js";
 
-// Mirrors post.guards.js's authorIdOf: authorId is a raw ObjectId on most
-// reads and a populated User subdocument when populateAuthor is requested.
+// Normalize raw and populated author values before comparing ids.
 const commentAuthorIdOf = (commentDoc) => {
   const author = commentDoc.authorId;
   const id = author && author._id ? author._id : author;

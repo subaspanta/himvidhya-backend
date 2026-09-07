@@ -1,19 +1,11 @@
-/**
- * Post-specific guards. Scope: "is this caller allowed to touch this
- * specific post" (I9, author-only edit/delete) -- nothing more. Class-level
- * authorization (owner, active member, writable) is never duplicated here;
- * every Post service function that needs it loads the owning Class via
- * post.classId and reuses loadClassOrThrow/assertClassOwner/
- * assertActiveMember/assertClassWritable from class.guards.js directly.
- */
+/** Post lookup and author guards; class checks stay in class.guards.js. */
 
 import mongoose from "mongoose";
 
 import Post from "../../models/Post.model.js";
 import { ForbiddenError, NotFoundError } from "../../utils/error/errors.js";
 
-// Mirrors class.guards.js's ownerIdOf: authorId is a raw ObjectId on most
-// reads and a populated User subdocument on getPostByIdService's response.
+// Normalize raw and populated author values before comparing ids.
 const authorIdOf = (postDoc) => {
   const author = postDoc.authorId;
   const id = author && author._id ? author._id : author;

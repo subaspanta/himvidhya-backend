@@ -1,10 +1,4 @@
-/**
- * Material-specific guards. Scope: "does this id resolve to a material" --
- * nothing more. There is no author-style check here (unlike Post/Comment):
- * every write is teacher-owner-only, so callers reuse assertClassOwner from
- * class.guards.js directly after loading the owning class via
- * material.classId.
- */
+/** Material lookup guard; ownership checks stay in class.guards.js. */
 
 import mongoose from "mongoose";
 
