@@ -19,17 +19,10 @@ import {
   ownerIdOf,
 } from "./guards/class.guards.js";
 
-// Generous ceiling for a classroom LMS's roster/join-queue/class-list sizes
-// -- high enough to never trip in normal use, low enough to stop a
-// pathological response.
+// Bound list queries to prevent pathological responses.
 const SAFETY_LIMIT = 500;
 
-// Card DTO shared by every class-returning endpoint: GET /classes, GET
-// /classes/:id (extended with membersCount below), and all five
-// class-mutation endpoints. Single source of truth for the wire shape so a
-// mutation response and a list-row response can never drift from each
-// other again -- previously only getMyClassesController built this shape,
-// and every mutation returned the raw Mongoose document instead.
+// Shared DTO for class lists, details, and mutations.
 const toClassCard = (classDoc, studentCount) => {
   const owner =
     classDoc.owner && typeof classDoc.owner === "object"
@@ -83,7 +76,7 @@ const createClassService = async ({ name, subject, description }, userId) => {
   return toClassCard(newClass, 0);
 };
 
-// Student requests to join a class — creates a pending JoinRequest
+// Create a pending join request for a student.
 const joinClassService = async (code, userId) => {
   if (!code || !userId) {
     throw new BadRequestError("Class code and user ID are required");
@@ -95,11 +88,10 @@ const joinClassService = async (code, userId) => {
     throw new NotFoundError("Class not found with this code");
   }
 
-  // Block joining an archived class (DR2: 403, not 400 — this is an
-  // authorization decision, not a malformed-request one)
+  // Archived classes reject new join requests with 403.
   assertClassWritable(classDoc);
 
-  // Check if already an active member (owner is never a ClassMember — C2)
+  // Owners are not stored as ClassMember rows.
   const isOwner = ownerIdOf(classDoc) === userId.toString();
   const activeMembership = await ClassMember.findOne({
     classId: classDoc._id,
@@ -111,7 +103,7 @@ const joinClassService = async (code, userId) => {
     throw new ConflictError("You are already a member of this class");
   }
 
-  // Check if a pending request already exists
+  // Prevent duplicate pending requests.
   const existingRequest = await JoinRequest.findOne({
     class: classDoc._id,
     user: userId,
@@ -124,7 +116,7 @@ const joinClassService = async (code, userId) => {
     );
   }
 
-  // Create a new join request
+  // Store the pending request.
   const joinRequest = await JoinRequest.create({
     class: classDoc._id,
     user: userId,
@@ -135,7 +127,7 @@ const joinClassService = async (code, userId) => {
   return joinRequest;
 };
 
-// Teacher approves a join request — adds user to class members
+// Approve a request and activate class membership.
 const approveJoinRequestService = async (requestId, teacherId) => {
   if (!requestId || !teacherId) {
     throw new BadRequestError("Request ID and teacher ID are required");
@@ -157,26 +149,20 @@ const approveJoinRequestService = async (requestId, teacherId) => {
     throw new NotFoundError("Class not found");
   }
 
-  // Only the class owner (teacher) can approve
+  // Only the class owner can approve requests.
   assertClassOwner(classDoc, teacherId, {
     message: "Only the class teacher can approve requests",
   });
 
-  // Approval is a write; C6/I6/item 19 name it explicitly as an
-  // archived-class write category. Rejection is deliberately exempt — see
-  // rejectJoinRequestService below and the guards module header.
+  // Approval is blocked on archived classes; rejection remains allowed.
   assertClassWritable(classDoc);
 
-  // The owner must never become a ClassMember (C2). isMember() used to catch
-  // this transitively because the pre-save hook auto-inserted the owner as a
-  // member; now that the owner is never in ClassMember, this must be checked
-  // explicitly so a legacy or otherwise out-of-band JoinRequest can't upsert
-  // an owner row.
+  // Never create a membership row for the class owner.
   if (ownerIdOf(classDoc) === joinRequest.user.toString()) {
     throw new ConflictError("Class owner cannot be added as a member");
   }
 
-  // Check if somehow already an active member (edge case)
+  // Guard against an already-active membership.
   const existingActiveMembership = await ClassMember.findOne({
     classId: classDoc._id,
     userId: joinRequest.user,
@@ -187,15 +173,14 @@ const approveJoinRequestService = async (requestId, teacherId) => {
     throw new ConflictError("User is already a member of this class");
   }
 
-  // Create the membership, or reactivate a prior left/removed row for this
-  // (class, user) pair rather than inserting a duplicate.
+  // Reactivate an old row instead of creating a duplicate.
   await ClassMember.findOneAndUpdate(
     { classId: classDoc._id, userId: joinRequest.user },
     { $set: { status: "active", joinedAt: new Date() } },
     { upsert: true, setDefaultsOnInsert: true },
   );
 
-  // Mark request as approved
+  // Mark the request resolved.
   joinRequest.status = "approved";
   joinRequest.resolvedAt = new Date();
   joinRequest.resolvedBy = teacherId;
@@ -204,7 +189,7 @@ const approveJoinRequestService = async (requestId, teacherId) => {
   return joinRequest;
 };
 
-// Teacher rejects a join request
+// Reject a pending join request.
 const rejectJoinRequestService = async (requestId, teacherId) => {
   if (!requestId || !teacherId) {
     throw new BadRequestError("Request ID and teacher ID are required");
@@ -226,16 +211,12 @@ const rejectJoinRequestService = async (requestId, teacherId) => {
     throw new NotFoundError("Class not found");
   }
 
-  // Only the class owner (teacher) can reject
+  // Only the class owner can reject requests.
   assertClassOwner(classDoc, teacherId, {
     message: "Only the class teacher can reject requests",
   });
 
-  // No assertClassWritable here, deliberately: API Contract § 6.4, PRD § 7.3
-  // and Implementation.md item 19 all scope the archived-class write
-  // restriction to approval only. A teacher may clear a pending queue
-  // (reject) on an archived class; they may not grow its membership
-  // (approve). Covered by class.archive.test.js.
+  // Rejection is allowed on archived classes; approval is not.
 
   // Mark request as rejected and increment rejection count
   joinRequest.status = "rejected";
@@ -298,8 +279,7 @@ const getMyClassesService = async (userId) => {
     throw new AuthenticationError("User ID required");
   }
 
-  // Owner is never a ClassMember (C2), so a teacher's own classes are found
-  // via Class.owner, unioned with classes they hold an active membership in.
+  // Include owned classes because owners have no membership rows.
   const memberClassIds = await ClassMember.find({
     userId,
     status: "active",
@@ -347,17 +327,14 @@ const getClassByIdService = async (classId, userId) => {
     throw new NotFoundError("Class not found");
   }
 
-  // Archived classes stay readable for existing active members and the
-  // owner (C5/I6) — archive blocks writes only. See assertClassWritable in
-  // the guards for the write-side enforcement.
+  // Archives block writes, not reads.
 
-  // Security: owner or active member only (owner is never a ClassMember — C2)
+  // Allow owners and active members only.
   await assertActiveMember(classDoc, userId, {
     message: "You are not a member of this class",
   });
 
-  // The roster itself lives at GET /classes/:classId/members (item 13) —
-  // this response carries only the count, not the full member list.
+  // Return only the count; the roster has its own endpoint.
   const membersCount = await ClassMember.countDocuments({
     classId: classDoc._id,
     status: "active",
@@ -369,10 +346,7 @@ const getClassByIdService = async (classId, userId) => {
   };
 };
 
-// Roster for a class — active ClassMember rows only (Implementation.md
-// item 13). The owner is never included; per C2 the owner is not a
-// ClassMember, and callers already have the owner from Class.owner /
-// getClassByIdService.
+// Return active members; the owner is not a ClassMember row.
 const getClassMembersService = async (classId, userId) => {
   const classDoc = await loadClassOrThrow(classId);
 
@@ -400,9 +374,7 @@ const getClassMembersService = async (classId, userId) => {
   };
 };
 
-// Teacher edits their own class's metadata (Implementation.md item 10).
-// Cover image is deliberately excluded — the field does not exist on the
-// model yet, and the presigned-upload flow it needs lands with Materials.
+// Update class metadata; cover images belong to the materials flow.
 const updateClassService = async (classId, userId, updates) => {
   const classDoc = await loadClassOrThrow(classId, { populateOwner: true });
 
@@ -420,13 +392,7 @@ const updateClassService = async (classId, userId, updates) => {
   return toClassCard(classDoc, studentCount);
 };
 
-// Owner archives their own class (Implementation.md item 11). Deliberately
-// does not call assertClassWritable — that guard exists to block ordinary
-// writes on an already-archived class, not to express "must currently be
-// active". Archiving an already-archived class is a state conflict, not an
-// authorization failure, so it follows the existing ConflictError idiom
-// used for "already resolved" join requests rather than overloading the
-// writable guard's 403 semantics.
+// Archiving an archived class is a conflict, not an authorization failure.
 const archiveClassService = async (classId, userId) => {
   const classDoc = await loadClassOrThrow(classId, { populateOwner: true });
 
@@ -447,10 +413,7 @@ const archiveClassService = async (classId, userId) => {
   return toClassCard(classDoc, studentCount);
 };
 
-// Owner restores their own archived class (Implementation.md item 11).
-// Same reasoning as archiveClassService in reverse: assertClassWritable
-// would incorrectly 403 the one case restore exists to handle (the class
-// is archived), so this checks the inverse state directly instead.
+// Restore requires the archived state, so it bypasses assertClassWritable.
 const restoreClassService = async (classId, userId) => {
   const classDoc = await loadClassOrThrow(classId, { populateOwner: true });
 
@@ -471,9 +434,7 @@ const restoreClassService = async (classId, userId) => {
   return toClassCard(classDoc, studentCount);
 };
 
-// Owner regenerates their class's join code (Implementation.md item 12).
-// The old code stops resolving to any class immediately; existing
-// ClassMember rows are untouched (PRD § 7.3).
+// Replace the join code without changing existing memberships.
 const regenerateJoinCodeService = async (classId, userId) => {
   const classDoc = await loadClassOrThrow(classId, { populateOwner: true });
 
@@ -491,10 +452,7 @@ const regenerateJoinCodeService = async (classId, userId) => {
   return toClassCard(classDoc, studentCount);
 };
 
-// Student leaves a class they are an active member of (Implementation.md
-// item 14). No assertClassWritable — I6 and PRD § 7.3 don't list leaving
-// among the writes an archived class blocks, so this works identically
-// whether the class is active or archived.
+// Leaving remains allowed when a class is archived.
 const leaveClassService = async (classId, userId) => {
   const classDoc = await loadClassOrThrow(classId);
 
@@ -510,18 +468,13 @@ const leaveClassService = async (classId, userId) => {
   return membership;
 };
 
-// Owner removes a student from their class (Implementation.md item 15).
-// No assertClassWritable — same I6/PRD § 7.3 reasoning as leaveClassService.
+// Removing a member remains allowed when a class is archived.
 const removeClassMemberService = async (classId, ownerId, targetUserId) => {
   const classDoc = await loadClassOrThrow(classId);
 
   assertClassOwner(classDoc, ownerId);
 
-  // A malformed :userId would otherwise reach ClassMember.findOne as a raw
-  // Mongoose CastError (a 500). loadClassOrThrow makes this same check for
-  // :classId; there is no equivalent guard for a second id in the path, so
-  // it is repeated here rather than reused from another service, since it
-  // is one line and no other id parameter exists yet.
+  // Validate the second path id before querying to avoid a CastError.
   if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
     throw new NotFoundError("Class member not found");
   }

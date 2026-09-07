@@ -48,11 +48,7 @@ const createCommentService = async (postId, userId, { content }) => {
   return comment;
 };
 
-// Deliberately does not filter deletedAt: null — unlike the post feed,
-// comments have no separate single-item GET endpoint, so a deleted
-// comment's tombstone (PRD §7.5: "This comment has been deleted.") can only
-// ever render from within this list. The client renders the tombstone text
-// in place of content when deletedAt is set, same convention as PostCard.
+// Keep deleted comments so the list can render their tombstones.
 const listCommentsService = async (
   postId,
   userId,
@@ -63,8 +59,7 @@ const listCommentsService = async (
   await assertActiveMember(classDoc, userId, {
     message: "You are not a member of this class",
   });
-  // No assertClassWritable -- this is a read; archived classes stay
-  // readable (C5).
+  // Archived classes remain readable.
 
   const take = clampLimit(rawLimit, {
     defaultLimit: DEFAULT_COMMENT_PAGE_SIZE,
@@ -116,8 +111,7 @@ const updateCommentService = async (commentId, userId, updates) => {
   return comment;
 };
 
-// I9: author or class owner (moderation) — an OR, composed inline rather
-// than as a shared guard; see comment.guards.js's header for why.
+// Authors and class owners may delete comments.
 const deleteCommentService = async (commentId, userId) => {
   const comment = await loadCommentOrThrow(commentId);
   const post = await loadPostOrThrow(comment.postId);

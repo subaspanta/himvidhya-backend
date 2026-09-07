@@ -25,9 +25,7 @@ const DEFAULT_POST_PAGE_SIZE = 20; // D14 per-resource default
 const MAX_PINNED_POSTS_PER_CLASS = 3; // I5
 const PINNED_SORT = { createdAt: -1, _id: -1 };
 
-// Post-specific cursor decode: cursor.js validates createdAt/_id generically;
-// this layers the one extra field the pinned-boundary algorithm below needs,
-// without cursor.js knowing Posts (or pinning) exist.
+// Add the post-specific pin state to the generic cursor validation.
 const decodePostCursor = (token) => {
   const decoded = decodeCursor(token);
   if (typeof decoded.isPinned !== "boolean") {
@@ -57,16 +55,7 @@ const createPostService = async (classId, teacherId, { title, content }) => {
   return post;
 };
 
-/**
- * Pinned-first feed (ADR-0006): pinned posts always fully precede unpinned
- * ones, each bucket internally ordered by (createdAt, _id) desc. Because
- * pinned strictly precedes unpinned in the total order, a cursor only ever
- * needs to record which bucket the last-returned item belonged to plus its
- * position inside that bucket -- there is no third state. buildCursorQuery
- * itself stays fully generic; pin-awareness is composed here by running two
- * independently-paginated bucket queries and carrying isPinned as an extra
- * cursor-payload field.
- */
+/** Pinned and unpinned posts paginate as separate ordered buckets. */
 const listPostsFeedService = async (
   classId,
   userId,
@@ -76,8 +65,7 @@ const listPostsFeedService = async (
   await assertActiveMember(classDoc, userId, {
     message: "You are not a member of this class",
   });
-  // No assertClassWritable -- this is a read; archived classes stay
-  // readable (C5).
+  // Archived classes remain readable.
 
   const take = clampLimit(rawLimit, { defaultLimit: DEFAULT_POST_PAGE_SIZE });
   const decoded = rawCursor ? decodePostCursor(rawCursor) : null;
@@ -136,8 +124,7 @@ const listPostsFeedService = async (
   return { posts, meta: buildPageMeta({ hasMore, nextCursor }) };
 };
 
-// Author populated for a richer single-post view (mirrors
-// getClassByIdService populating owner).
+// Populate the author for the single-post response.
 const getPostByIdService = async (postId, userId) => {
   const post = await loadPostOrThrow(postId, {
     populateAuthor: true,
@@ -147,7 +134,7 @@ const getPostByIdService = async (postId, userId) => {
   await assertActiveMember(classDoc, userId, {
     message: "You are not a member of this class",
   });
-  // I7: no deletedAt-based exclusion -- tombstones stay retrievable as-is.
+  // Deleted posts remain retrievable as tombstones.
   return post;
 };
 
@@ -202,12 +189,7 @@ const pinPostService = async (postId, userId) => {
     throw new ConflictError("This class already has 3 pinned posts");
   }
 
-  // Single-document compare-and-swap: makes a concurrent double-pin of the
-  // SAME post safe without a transaction. The narrow cross-document race
-  // (two different posts both passing the count check concurrently) is a
-  // documented, accepted tradeoff -- see services/post.service.js's design
-  // notes in the implementation plan; not worth a replica-set-only
-  // transaction at portfolio scale.
+  // Compare-and-swap prevents double-pinning the same post without a transaction.
   const updated = await Post.findOneAndUpdate(
     { _id: post._id, isPinned: false },
     { $set: { isPinned: true } },
