@@ -44,6 +44,12 @@ See `.env.example` for the full list, including object storage and Sentry variab
 
 The server exposes `/health` and `/api/v1/health` for readiness checks.
 
+Verify a running instance with:
+
+```bash
+curl http://localhost:5000/health
+```
+
 ## Running with Docker Compose
 
 ```bash
