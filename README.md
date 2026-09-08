@@ -35,36 +35,36 @@ This repository is an independent service. The frontend lives in the sibling
 
 1. Install dependencies:
 
-	```bash
-	npm ci
-	```
+   ```bash
+   npm ci
+   ```
 
 2. Create the environment file:
 
-	```bash
-	cp .env.example .env
-	```
+   ```bash
+   cp .env.example .env
+   ```
 
 3. Set the required values in `.env`:
 
-	```env
-	PORT=5000
-	MONGODB_URI=mongodb://localhost:27017/himvidhya
-	JWT_ACCESS_SECRET=replace_with_a_long_random_value
-	JWT_REFRESH_SECRET=replace_with_a_different_long_random_value
-	ACCESS_TOKEN_EXPIRES_IN=15m
-	REFRESH_TOKEN_EXPIRES_IN=7d
-	CLIENT_URL=http://localhost:3000
-	```
+   ```env
+   PORT=5000
+   MONGODB_URI=mongodb://localhost:27017/himvidhya
+   JWT_ACCESS_SECRET=replace_with_a_long_random_value
+   JWT_REFRESH_SECRET=replace_with_a_different_long_random_value
+   ACCESS_TOKEN_EXPIRES_IN=15m
+   REFRESH_TOKEN_EXPIRES_IN=7d
+   CLIENT_URL=http://localhost:3000
+   ```
 
-	See `.env.example` for the complete configuration, including storage and
-	observability settings.
+   See `.env.example` for the complete configuration, including storage and
+   observability settings.
 
 4. Start the development server:
 
-	```bash
-	npm run dev
-	```
+   ```bash
+   npm run dev
+   ```
 
 The API is available at `http://localhost:5000`, with application routes under
 `http://localhost:5000/api/v1`.
@@ -110,16 +110,16 @@ Dependency checks are available through `npm run health:deps`.
 
 ## Scripts
 
-| Command | Purpose |
-| --- | --- |
-| `npm run dev` | Start the API with Nodemon |
-| `npm start` | Start the production server |
-| `npm test` | Run Jest tests serially |
-| `npm run lint` | Run ESLint |
-| `npm run typecheck` | Run TypeScript checks for JSDoc-typed JavaScript |
-| `npm run audit:deps` | Audit dependencies for high-severity vulnerabilities |
-| `npm run outdated:deps` | List outdated dependencies |
-| `npm run health:deps` | Run dependency audit and outdated checks |
+| Command                 | Purpose                                              |
+| ----------------------- | ---------------------------------------------------- |
+| `npm run dev`           | Start the API with Nodemon                           |
+| `npm start`             | Start the production server                          |
+| `npm test`              | Run Jest tests serially                              |
+| `npm run lint`          | Run ESLint                                           |
+| `npm run typecheck`     | Run TypeScript checks for JSDoc-typed JavaScript     |
+| `npm run audit:deps`    | Audit dependencies for high-severity vulnerabilities |
+| `npm run outdated:deps` | List outdated dependencies                           |
+| `npm run health:deps`   | Run dependency audit and outdated checks             |
 
 ## Project Structure
 
