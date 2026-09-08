@@ -35,12 +35,14 @@ See `.env.example` for the full list, including object storage and Sentry variab
 
 - `npm run dev` - Start with nodemon (auto-restart)
 - `npm start` - Start production server
-- `npm test` - Run Jest test suite (`--runInBand`)
+- `npm test` - Run the Jest test suite (`--runInBand`)
 - `npm run lint` - Run ESLint
 - `npm run typecheck` - Run TypeScript type checks (JSDoc/type-checked JS)
 - `npm run audit:deps` - Run npm audit with high severity threshold
 - `npm run outdated:deps` - Show outdated dependencies
 - `npm run health:deps` - Run audit + outdated checks
+
+The server exposes `/health` and `/api/v1/health` for readiness checks.
 
 ## Running with Docker Compose
 
