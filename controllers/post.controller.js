@@ -6,6 +6,9 @@ import {
   deletePostService,
   pinPostService,
   unpinPostService,
+  requestPostAttachmentUploadUrlService,
+  discardPostAttachmentUploadService,
+  getPostAttachmentDownloadUrlService,
 } from "../services/post.service.js";
 
 import { createdResponse, successResponse } from "../utils/responseParser.js";
@@ -13,10 +16,11 @@ import asyncHandler from "../helpers/asyncHandler.js";
 
 const createPostController = asyncHandler(async (req, res) => {
   const { classId } = req.params;
-  const { title, content } = req.body;
+  const { title, content, attachments } = req.body;
   const post = await createPostService(classId, req.auth.userId, {
     title,
     content,
+    attachments,
   });
   return createdResponse(res, { post }, "Post created successfully");
 });
@@ -67,6 +71,37 @@ const unpinPostController = asyncHandler(async (req, res) => {
   return successResponse(res, { post }, "Post unpinned successfully");
 });
 
+const requestPostAttachmentUploadUrlController = asyncHandler(
+  async (req, res) => {
+    const result = await requestPostAttachmentUploadUrlService(
+      req.params.classId,
+      req.auth.userId,
+      req.body,
+    );
+    return successResponse(res, result, "Upload URL issued successfully");
+  },
+);
+
+const discardPostAttachmentUploadController = asyncHandler(async (req, res) => {
+  await discardPostAttachmentUploadService(
+    req.params.classId,
+    req.auth.userId,
+    req.body.storageKey,
+  );
+  return successResponse(res, null, "Attachment upload discarded");
+});
+
+const getPostAttachmentDownloadUrlController = asyncHandler(
+  async (req, res) => {
+    const result = await getPostAttachmentDownloadUrlService(
+      req.params.postId,
+      req.params.attachmentId,
+      req.auth.userId,
+    );
+    return successResponse(res, result, "Download URL issued successfully");
+  },
+);
+
 export {
   createPostController,
   listPostsController,
@@ -75,4 +110,7 @@ export {
   deletePostController,
   pinPostController,
   unpinPostController,
+  requestPostAttachmentUploadUrlController,
+  discardPostAttachmentUploadController,
+  getPostAttachmentDownloadUrlController,
 };

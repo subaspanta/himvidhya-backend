@@ -1,5 +1,18 @@
 import mongoose from "mongoose";
 
+const attachmentSchema = new mongoose.Schema(
+  {
+    type: { type: String, enum: ["file", "link", "youtube"], required: true },
+    fileName: String,
+    mimeType: String,
+    size: Number,
+    storageKey: { type: String, select: false },
+    url: String,
+    thumbnailUrl: String,
+  },
+  { _id: true },
+);
+
 const postSchema = new mongoose.Schema(
   {
     title: {
@@ -32,6 +45,7 @@ const postSchema = new mongoose.Schema(
       type: Date,
       default: null, // Soft-delete: null = active, Date = deleted
     },
+    attachments: { type: [attachmentSchema], default: [] },
   },
   { timestamps: true },
 );

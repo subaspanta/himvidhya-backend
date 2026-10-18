@@ -23,7 +23,7 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
-      # Browser-direct PUT (Phase 3) needs the client origin allowed here.
+      # Browser-direct attachment and material uploads need this origin.
       MINIO_API_CORS_ALLOW_ORIGIN: ${CLIENT_URL:-http://localhost:3000}
     ports:
       - "9000:9000"
@@ -39,8 +39,8 @@ services:
       retries: 5
 
   # One-shot bucket bootstrap. Creates the bucket if missing and exits;
-  # does NOT grant public/anonymous access - materials stay private,
-  # reachable only through short-lived presigned URLs (Phase 3).
+  # does NOT grant public/anonymous access - materials and post attachments
+  # stay private, reachable only through short-lived presigned URLs.
   minio-init:
     image: minio/mc:latest
     depends_on:

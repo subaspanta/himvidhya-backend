@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import {MongoMemoryServer} from "mongodb-memory-server";
+import { MongoMemoryServer } from "mongodb-memory-server";
 import Post from "../models/Post.model.js";
 
 let mongod;
@@ -68,8 +68,21 @@ describe("Post model", () => {
     await expect(doc.validate()).rejects.toThrow();
   });
 
-  it("has no attachments field (D4)", () => {
-    expect(Post.schema.path("attachments")).toBeUndefined();
+  it("supports attachment metadata", async () => {
+    const doc = await Post.create({
+      ...baseFields(),
+      attachments: [
+        {
+          type: "file",
+          fileName: "notes.pdf",
+          mimeType: "application/pdf",
+          size: 42,
+          storageKey: "classes/example/notes.pdf",
+        },
+      ],
+    });
+    expect(doc.attachments).toHaveLength(1);
+    expect(doc.attachments[0].type).toBe("file");
   });
 
   it("has the (classId, isPinned, createdAt, _id) compound index", async () => {

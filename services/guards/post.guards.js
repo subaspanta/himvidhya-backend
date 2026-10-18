@@ -14,13 +14,16 @@ const authorIdOf = (postDoc) => {
 
 const loadPostOrThrow = async (
   postId,
-  { populateAuthor = false, lean = false } = {},
+  { populateAuthor = false, lean = false, select } = {},
 ) => {
   if (!postId || !mongoose.Types.ObjectId.isValid(postId)) {
     throw new NotFoundError("Post not found");
   }
 
   let query = Post.findById(postId);
+  if (select) {
+    query = query.select(select);
+  }
   if (populateAuthor) {
     query = query.populate("authorId", "name email avatar role");
   }

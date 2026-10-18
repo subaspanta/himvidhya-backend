@@ -123,6 +123,34 @@ const updateClassSchema = z
 // Matches Post.model.js's own field constraints (title 200 chars, content
 // 10000 chars) -- anything passing this Zod schema is guaranteed to also
 // pass the Mongoose model's constraints.
+const postAttachmentInputSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("file"),
+    storageKey: z.string().trim().min(1, "Storage key is required"),
+    fileName: z.string().trim().min(1, "File name is required").max(255),
+  }),
+  z.object({
+    type: z.literal("link"),
+    url: z
+      .string()
+      .trim()
+      .url("Enter a valid URL")
+      .refine((url) => /^https?:\/\//i.test(url), {
+        message: "Enter an HTTP or HTTPS URL",
+      }),
+  }),
+  z.object({
+    type: z.literal("youtube"),
+    url: z
+      .string()
+      .trim()
+      .url("Enter a valid URL")
+      .refine((url) => /^https?:\/\//i.test(url), {
+        message: "Enter an HTTP or HTTPS URL",
+      }),
+  }),
+]);
+
 const createPostSchema = z.object({
   title: z
     .string()
@@ -134,6 +162,7 @@ const createPostSchema = z.object({
     .trim()
     .min(1, "Content is required")
     .max(10000, "Content cannot exceed 10000 characters"),
+  attachments: z.array(postAttachmentInputSchema).max(10).optional(),
 });
 
 const updatePostSchema = z
@@ -150,6 +179,7 @@ const updatePostSchema = z
       .min(1, "Content cannot be empty")
       .max(10000, "Content cannot exceed 10000 characters")
       .optional(),
+    attachments: z.array(postAttachmentInputSchema).max(10).optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: "At least one field must be provided",
@@ -172,6 +202,16 @@ const updateCommentSchema = z.object({
     .trim()
     .min(1, "Content cannot be empty")
     .max(2000, "Comment cannot exceed 2000 characters"),
+});
+
+const requestPostAttachmentUploadUrlSchema = z.object({
+  fileName: z.string().trim().min(1, "File name is required").max(255),
+  mimeType: z.string().trim().min(1, "MIME type is required"),
+  size: z.number().int().positive("Size must be a positive number"),
+});
+
+const discardPostAttachmentUploadSchema = z.object({
+  storageKey: z.string().trim().min(1, "Storage key is required"),
 });
 
 // Matches Material.model.js's own field constraints (title 200 chars,
@@ -251,4 +291,6 @@ export {
   confirmMaterialUploadSchema,
   updateMaterialSchema,
   requestMaterialReplaceUrlSchema,
+  requestPostAttachmentUploadUrlSchema,
+  discardPostAttachmentUploadSchema,
 };

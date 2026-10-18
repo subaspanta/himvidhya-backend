@@ -13,7 +13,8 @@ This repository is an independent service. The frontend lives in the sibling
 - Cookie-based JWT authentication with access-token refresh
 - Teacher and student role-based access control
 - Private classes with join codes and approval-based membership
-- Posts, comments, learning materials, and profile workflows
+- Announcement posts with private file, link, and YouTube attachments
+- Searchable learning materials with upload, replace, download, and delete
 - Resource-level authorization at the service layer
 - Request validation, centralized errors, structured responses, and logging
 
@@ -60,34 +61,64 @@ This repository is an independent service. The frontend lives in the sibling
    See `.env.example` for the complete configuration, including storage and
    observability settings.
 
-4. Start the development server:
+4. Start MongoDB and MinIO, then run the API locally:
 
    ```bash
+   docker compose up -d mongo minio minio-init
    npm run dev
    ```
 
+   This is the recommended development mode: infrastructure runs in Docker,
+   while Nodemon runs the API. Do not also run `docker compose up server`; that
+   would start a second API process and reserve port `5000`.
+
 The API is available at `http://localhost:5000`, with application routes under
-`http://localhost:5000/api/v1`.
+`http://localhost:5000/api/v1`. MinIO's console is available at
+`http://localhost:9001`.
+
+## File Workflows
+
+HimVidhya has two intentionally separate file experiences:
+
+- **Materials** is the durable, searchable class library. Teachers can upload,
+  replace, and delete resources; active members can view and download them.
+- **Post attachments** add context to one announcement. A post may contain up
+  to 10 allowed files, HTTP(S) links, or YouTube videos.
+
+Allowed file types are PDF, DOC, DOCX, PPT, PPTX, XLS, XLSX, PNG, JPG, and
+JPEG, with a 25 MB per-file limit. Both workflows use private S3-compatible
+storage:
+
+```text
+browser -> request authorized URL from API -> transfer bytes with MinIO/S3
+        -> API verifies object metadata -> API stores safe metadata only
+```
+
+Storage keys are never returned in post or material read responses. Active
+class membership is checked before the API issues a short-lived download URL.
 
 ## Docker Compose
 
-Start the backend with MongoDB and MinIO:
+Start the complete backend stack (API, MongoDB, and MinIO):
 
 ```bash
-docker compose up
+docker compose up -d
 ```
 
 Start the complete local stack, including the client checkout at `../client`:
 
 ```bash
-docker compose --profile fullstack up
+docker compose --profile fullstack up -d
 ```
 
 For a client checkout in another location, set `CLIENT_PATH` before starting:
 
 ```bash
-CLIENT_PATH=../himvidhya-frontend docker compose --profile fullstack up
+CLIENT_PATH=../himvidhya-frontend docker compose --profile fullstack up -d
 ```
+
+Inspect status and logs with `docker compose ps` and
+`docker compose logs -f server`. Stop the stack with `docker compose down`.
 
 ## Verification
 
